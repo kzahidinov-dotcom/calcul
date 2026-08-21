@@ -140,13 +140,19 @@ textarea:focus{outline:2px solid var(--gold);outline-offset:-1px;border-color:va
 .undo.on{display:flex}
 .undo button{background:var(--gold);border:none;color:var(--ink);border-radius:6px;padding:6px 11px;font-weight:700;cursor:pointer}
 
+.sticky-sum-dock{position:fixed;bottom:75px;right:10px;z-index:55;max-width:calc(100vw - 20px);width:360px;font-family:var(--sans);transition:all .2s ease}
+.dock-toggle{background:var(--ink);color:#fff;border:1px solid var(--gold);border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;justify-content:space-between;box-shadow:0 4px 14px rgba(0,0,0,0.3);width:100%}
+.dock-toggle .pill{color:var(--gold);font-family:var(--mono);font-size:11px}
+.dock-body{background:#fff;border:1px solid var(--rule);border-radius:8px;margin-bottom:6px;padding:10px;max-height:55vh;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.25)}
+
 @media (min-width:1000px){
   .cols{display:grid;grid-template-columns:1fr 380px;gap:20px;align-items:start}
   .side{position:sticky;top:158px}
   body{padding-bottom:20px}
   .total{display:none}
+  .sticky-sum-dock{bottom:20px}
 }
-@media print{header,.total,.actions,.ib,.add,.chips,.undo{display:none}body{padding-bottom:0}.cols{display:block}}
+@media print{header,.total,.actions,.ib,.add,.chips,.undo,.sticky-sum-dock{display:none}body{padding-bottom:0}.cols{display:block}}
 </style>
 </head>
 <body>
@@ -207,6 +213,14 @@ textarea:focus{outline:2px solid var(--gold);outline-offset:-1px;border-color:va
 </div>
 
 <div class="side">
+  <div id="sideSumContainer">
+    <div class="eyebrow" style="cursor:pointer" onclick="toggleSideSummary()">
+      <span>📐 Квадратура замера</span>
+      <button class="btn ghost sm" style="padding:2px 8px;font-size:11px;margin-left:auto" id="sideSumBtn">Свернуть</button>
+    </div>
+    <div class="panel" id="sideSummaryContent" style="padding:10px;margin-bottom:10px"></div>
+  </div>
+
   <div class="eyebrow">Сумма</div>
   <div class="money">
     <div class="mrow"><span>Práce podľa CP</span><b id="mCp">0,00 €</b></div>
@@ -244,6 +258,21 @@ textarea:focus{outline:2px solid var(--gold);outline-offset:-1px;border-color:va
   </div>
 </div>
 </div></div>
+
+<div id="dockContainer" class="sticky-sum-dock hide">
+  <div id="dockBody" class="dock-body hide">
+    <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--rule);padding-bottom:6px;margin-bottom:8px">
+      <b style="font-size:13px">📐 Сводка замера по комнатам</b>
+      <button class="btn ghost sm" style="padding:2px 7px;font-size:11px" onclick="toggleDock(false)">✕ Свернуть</button>
+    </div>
+    <div id="dockContent"></div>
+  </div>
+  <button class="dock-toggle" onclick="toggleDock()">
+    <span style="display:flex;align-items:center;gap:6px"><span>📐</span><span>Квадратуры</span></span>
+    <span class="pill" id="dockPill">—</span>
+    <span id="dockArr">▲</span>
+  </button>
+</div>
 
 <div class="total">
   <div class="grp">
@@ -449,6 +478,95 @@ function renderRooms(){
   bindNav(); renderSummary(); refresh();
 }
 
+let sideSumOpen=true, dockOpen=false;
+
+function toggleSideSummary(){
+  sideSumOpen=!sideSumOpen;
+  const b=document.getElementById('sideSummaryContent');
+  const btn=document.getElementById('sideSumBtn');
+  if(b) b.classList.toggle('hide',!sideSumOpen);
+  if(btn) btn.textContent=sideSumOpen?'Свернуть':'Развернуть';
+}
+
+function toggleDock(forcedState){
+  dockOpen=(forcedState!==undefined)?forcedState:!dockOpen;
+  const b=document.getElementById('dockBody');
+  const arr=document.getElementById('dockArr');
+  if(b) b.classList.toggle('hide',!dockOpen);
+  if(arr) arr.textContent=dockOpen?'▼':'▲';
+}
+
+function summaryHTML(){
+  const t=T();
+  if(!rooms.length) return '<div class="empty" style="padding:10px;border:none">Помещения пока не добавлены</div>';
+  
+  const badges=`
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:6px;margin-bottom:8px">
+      <div style="background:#F4F2EE;border:1px solid var(--rule);border-radius:6px;padding:4px 6px">
+        <span style="font-size:9px;color:var(--ink-soft);text-transform:uppercase;display:block">Пол</span>
+        <b style="font-family:var(--mono);font-size:13px;color:var(--calc)">${nf(t.floor)} м²</b>
+      </div>
+      <div style="background:#F4F2EE;border:1px solid var(--rule);border-radius:6px;padding:4px 6px">
+        <span style="font-size:9px;color:var(--ink-soft);text-transform:uppercase;display:block">Стены нетто</span>
+        <b style="font-family:var(--mono);font-size:13px">${nf(t.wall)} м²</b>
+      </div>
+      <div style="background:#F4F2EE;border:1px solid var(--rule);border-radius:6px;padding:4px 6px">
+        <span style="font-size:9px;color:var(--ink-soft);text-transform:uppercase;display:block">Плитка</span>
+        <b style="font-family:var(--mono);font-size:13px;color:var(--gold)">${nf(t.obk)} м²</b>
+      </div>
+      ${t.murovTotal>0?`
+      <div style="background:#FDF8EC;border:1px solid #E6D7A7;border-radius:6px;padding:4px 6px">
+        <span style="font-size:9px;color:#854D0E;text-transform:uppercase;display:block">Мурование</span>
+        <b style="font-family:var(--mono);font-size:13px;color:#854D0E">${nf(t.murovTotal)} м²</b>
+      </div>`:''}
+      <div style="background:#F4F2EE;border:1px solid var(--rule);border-radius:6px;padding:4px 6px">
+        <span style="font-size:9px;color:var(--ink-soft);text-transform:uppercase;display:block">Плинтус</span>
+        <b style="font-family:var(--mono);font-size:13px">${nf(t.sokle)} bm</b>
+      </div>
+      <div style="background:#F4F2EE;border:1px solid var(--rule);border-radius:6px;padding:4px 6px">
+        <span style="font-size:9px;color:var(--ink-soft);text-transform:uppercase;display:block">Проемы</span>
+        <b style="font-family:var(--mono);font-size:12px">${t.doors} дв / ${t.wins} ок</b>
+      </div>
+    </div>
+  `;
+
+  const roomRows=rooms.map((r,i)=>{
+    const c=calc(r);
+    const details=[];
+    details.push(`Стены: <b>${nf(c.wallN)} м²</b>`);
+    details.push(`Обвод: ${nf(c.perim)}м`);
+    if(c.H!==2.60) details.push(`В: ${c.H}м`);
+    if(r.doors||r.windows) details.push(`Проемы: ${r.doors}д/${r.windows}о`);
+    if(r.tile&&c.obk>0) details.push(`<span style="color:var(--gold);font-weight:600">Плитка: ${nf(c.obk)} м²${r.obkladW?` (${r.obkladW}×${r.obkladH}м)`:` (h=${r.obkladH}м)`}</span>`);
+    if(r.murov&&c.murArea>0) details.push(`<span style="color:#854D0E;font-weight:600">Мур: ${nf(c.murArea)} м² [${esc(r.murovItem||'перегородка')}]</span>`);
+
+    return `
+      <div style="border-top:1px solid var(--rule);padding:5px 0;font-size:12px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <b>${String(i+1).padStart(2,'0')}. ${esc(r.name||'Без названия')}${r.bath?' ◈':''}</b>
+          <span style="font-family:var(--mono);color:var(--calc);font-weight:700">${nf(c.floor)} м²</span>
+        </div>
+        <div style="font-size:11px;color:var(--ink-soft);margin-top:2px;display:flex;flex-wrap:wrap;gap:6px">
+          ${details.join(' · ')}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  return badges+`<div style="max-height:220px;overflow-y:auto;padding-right:2px">${roomRows}</div>`;
+}
+
+function renderSideSummary(){
+  const sBox=document.getElementById('sideSummaryContent');
+  const dBox=document.getElementById('dockContent');
+  const pill=document.getElementById('dockPill');
+  const t=T();
+  const html=summaryHTML();
+  if(sBox) sBox.innerHTML=html;
+  if(dBox) dBox.innerHTML=html;
+  if(pill) pill.textContent=`${nf(t.floor)} м² пол · ${nf(t.wall)} м² стен${t.obk>0?` · ${nf(t.obk)} м² плит`:''}${t.murovTotal>0?` · ${nf(t.murovTotal)} м² мур`:''}`;
+}
+
 function renderSummary(){
   if(!rooms.length){document.getElementById('summary').innerHTML='<div class="empty" style="border:none">Пока нечего показывать</div>';return;}
   const t=T();
@@ -464,6 +582,7 @@ function renderSummary(){
     <tfoot><tr><td>Итого</td><td class="nm">${nf(t.floor)}</td><td class="nm">${nf(t.sokle+t.doors*0.8)}</td>
     <td class="nm">${nf(t.wall)}</td><td class="nm">${nf(t.obk)}</td><td class="nm">${nf(t.sokle)}</td>
     <td class="nm">${t.doors}</td><td class="nm">${t.wins}</td></tr></tfoot></table>`;
+  renderSideSummary();
 }
 
 function up(id,f,ri,k,v){
@@ -492,7 +611,7 @@ function soft(){
     card.querySelector('.rsum').textContent=nf(c.floor)+' м²';
     const o=card.querySelectorAll('.out b'),v=[c.floor,c.perim,c.wallN,c.obk,c.sokle];
     o.forEach((el,j)=>el.textContent=nf(v[j]));});
-  renderSummary(); autofill(); autoBath(); refresh();
+  renderSummary(); renderSideSummary(); autofill(); autoBath(); refresh();
   if(step===2){renderCP();renderBath();}
 }
 
@@ -527,6 +646,9 @@ function go(n){
   document.getElementById('tab2').classList.toggle('on',n===2);
   document.getElementById('tBtn').textContent=n===1?'+ Комната':'Записать в CP';
   document.getElementById('tBtn').onclick=n===1?addRoom:sendCP;
+  const dock=document.getElementById('dockContainer');
+  if(dock) dock.classList.toggle('hide',n!==2);
+  renderSideSummary();
   if(n===2){autofill();autoBath();renderCP();renderBath();}
   window.scrollTo(0,0);
 }
