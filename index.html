@@ -391,12 +391,16 @@ function calc(r){
 
 function T(){
   const t={floor:0,wall:0,strop:0,obk:0,sokle:0,ost:0,doors:0,wins:0,
-           bathFloor:0,bathObk:0,bathCnt:0,kitchen:0,murovTotal:0,masonry:{}};
+           bathFloor:0,bathObk:0,bathCnt:0,kitchen:0,kitchenObk:0,livingFloor:0,murovTotal:0,masonry:{}};
   rooms.forEach(r=>{const c=calc(r);
     t.floor+=c.floor;t.strop+=c.floor;t.wall+=c.wallN;t.obk+=c.obk;
     t.sokle+=c.sokle;t.ost+=c.ost;t.doors+=r.doors;t.wins+=r.windows;
     if(r.bath){t.bathFloor+=c.floor;t.bathObk+=c.obk;t.bathCnt+=1;}
-    if(r.preset==='Kuchyňa')t.kitchen+=1;
+    else{t.livingFloor+=c.floor;}
+    if(r.preset==='Kuchyňa'||norm(r.name).indexOf('kuch')>=0){
+      t.kitchen+=1;
+      if(r.tile) t.kitchenObk+=c.obk;
+    }
     if(r.murov&&c.murArea>0&&r.murovItem){
       t.murovTotal+=c.murArea;
       t.masonry[r.murovItem]=(t.masonry[r.murovItem]||0)+c.murArea;
@@ -663,6 +667,8 @@ const MAP=[
   [/^maľby akrylátové/,'wall+strop'],
   [/^sadrova omietka/,'wall'],
   [/^sieťkovanie stien/,'wall'],
+  [/obklad.*kuchy|zástena/,'kitchenObk'],
+  [/obklad.*kúpeľ|dlažb.*kúpeľ/,'bathTile'],
   [/^montáž obkladov vnútor/,'obk'],
   [/^vybúranie kovových dverových zárubní a demontáž dverného krídla$/,'doors'],
   [/^montáž drevených dverových zárubní/,'doors'],
@@ -671,19 +677,33 @@ const MAP=[
   [/kompletn[áa] elektroin[šs]tal/,'floor'],
   [/elektromont[áa][žz]/,'floor'],
   [/^demontáž \+ montáž \+ hrubý materiál/,'floor'],
-  [/^búranie dlažieb/,'floor'],
+  [/búranie dlažieb|búranie keramickej dlažby/,'floor'],
+  [/demontáž podláh drevených|demontáž parkiet|demontáž drevenej/,'floor'],
+  [/odstránenie linolea|odstranenie linolea|odstránenie pvc|odstranenie pvc/,'floor'],
+  [/demontáž plávajúcej|demontaz plavajucej/,'floor'],
+  [/montáž vinylovej|pokládka plávajúcej|pokládka vinylovej|pokládka podlahy/,'floor'],
   [/^vyspravenie podkladu nivelačnou stierkou hr 5 mm/,'floor'],
   [/^lepenie a rezanie podlahových keramických soklov/,'sokle'],
   [/^mdf lišty pod 45/,'sokle'],
+  [/osadenie geberit|montáž geberit|podomietkov.*modul|geberit/,'bathCnt'],
   [/^demontáž záchoda/,'bathCnt'],
   [/^demontáž umývadiel/,'bathCnt'],
   [/^demontáž vane do sute/,'bathCnt']
 ];
 function val(k,t){
   switch(k){
-    case 'wall':return t.wall; case 'floor':return t.floor; case 'obk':return t.obk;
-    case 'ost':return t.ost; case 'doors':return t.doors; case 'sokle':return t.sokle;
-    case 'wall+strop':return t.wall+t.strop; case 'bathCnt':return t.bathCnt;
+    case 'wall':return t.wall;
+    case 'floor':return t.floor;
+    case 'livingFloor':return t.livingFloor;
+    case 'bathFloor':return t.bathFloor;
+    case 'obk':return t.obk;
+    case 'bathTile':return t.bathTile;
+    case 'kitchenObk':return t.kitchenObk;
+    case 'ost':return t.ost;
+    case 'doors':return t.doors;
+    case 'sokle':return t.sokle;
+    case 'wall+strop':return t.wall+t.strop;
+    case 'bathCnt':return t.bathCnt;
   } return 0;
 }
 function autofill(){
