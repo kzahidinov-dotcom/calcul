@@ -850,6 +850,35 @@ function autofill(){
       }
     });
   }
+  calcSkladkaOdpadu();
+}
+
+function calcSkladkaOdpadu(){
+  if(!cpLoaded||!cpItems.length)return;
+  const isDemoRe=/búranie|buranie|demontáž|demontaz|odstránenie|odstranenie|vybúranie|vyburanie|osekanie|otlčenie/i;
+  const isSkladkaRe=/skládka odpadu|skladka odpadu|poplatok za skládku/i;
+  let demoSum=0;
+  cpItems.forEach(it=>{
+    if(it.section||!sel[it.row])return;
+    const n=norm(it.name);
+    if(isDemoRe.test(n)&&!isSkladkaRe.test(n)){
+      const q=qty[it.row]||0;
+      const p=it.price||0;
+      demoSum+=q*p;
+    }
+  });
+  const skladkaItem=cpItems.find(it=>!it.section&&isSkladkaRe.test(norm(it.name)));
+  if(skladkaItem&&!man[skladkaItem.row]){
+    if(demoSum>0){
+      const skladkaTotal=Math.round(demoSum*1.05*100)/100;
+      const price=skladkaItem.price>0?skladkaItem.price:1.0;
+      qty[skladkaItem.row]=Math.round((skladkaTotal/price)*100)/100;
+      sel[skladkaItem.row]=true;
+    } else {
+      delete qty[skladkaItem.row];
+      sel[skladkaItem.row]=false;
+    }
+  }
 }
 
 function renderCP(){
@@ -858,7 +887,7 @@ function renderCP(){
     if(it.section)return `<tr class="sec"><td colspan="6">${esc(it.name)}</td></tr>`;
     const q=qty[it.row]||0,on=!!sel[it.row],tot=q*(it.price||0),fr=freqOf(it.name);
     return `<tr class="${on?'':'off'}">
-      <td class="s"><input type="checkbox" ${on?'checked':''} onchange="sel[${it.row}]=this.checked;refresh();renderCP()"></td>
+      <td class="s"><input type="checkbox" ${on?'checked':''} onchange="sel[${it.row}]=this.checked;calcSkladkaOdpadu();refresh();renderCP()"></td>
       <td>${esc(it.name)}${fr?`<span class="star" title="заполнено в ${fr} из 3 смет">${'★'.repeat(fr-1)}</span>`:''}</td>
       <td class="mj">${esc(it.mj||'')}</td>
       <td class="q"><input type="number" step="0.01" inputmode="decimal" class="${man[it.row]?'man':(q?'auto':'')}" value="${q?q:''}" oninput="setQ(${it.row},this.value)"></td>
@@ -874,7 +903,7 @@ function renderCP(){
 function setQ(row,v){
   qty[row]=num(v); man[row]=true;
   if(num(v)>0&&sel[row]===undefined)sel[row]=true;
-  refresh(); updTotals();
+  calcSkladkaOdpadu(); refresh(); updTotals();
 }
 function updTotals(){
   const tb=document.querySelector('#cpTable tbody');if(!tb)return;
