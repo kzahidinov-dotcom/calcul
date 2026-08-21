@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14161A">
+<title>PRERAB — Замер объекта</title>
+<style>
+:root{
+  --ink:#14161A; --ink-soft:#5A5F68; --paper:#FAF9F7; --card:#FFF;
+  --rule:#DDD9D2; --rs:#B9B4AA; --gold:#BFA05A; --calc:#1F6F5C; --alert:#B3402F;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.45;padding-bottom:96px}
+
+header{background:var(--ink);color:#fff;padding:10px 14px 0;border-bottom:3px solid var(--gold);position:sticky;top:0;z-index:40}
+.logo{height:26px;display:block}
+.hgrid{display:flex;gap:9px;align-items:flex-end;margin-top:9px;flex-wrap:wrap}
+.hf{flex:1;min-width:104px}.hf.n{flex:none}
+.hf label{display:block;font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:#9A9DA4;margin-bottom:2px}
+.hf input{width:100%;background:#22252B;border:1px solid #383C44;color:#fff;border-radius:6px;padding:7px 9px;font-size:15px;font-family:var(--sans)}
+.hf.n input{font-family:var(--mono);text-align:right;width:74px}
+.hf.cp input{font-family:var(--mono);width:118px;text-align:center}
+.hf input:focus{outline:2px solid var(--gold);border-color:var(--gold)}
+.tabs{display:flex;margin-top:9px}
+.tab{flex:1;background:transparent;border:none;border-bottom:3px solid transparent;color:#9A9DA4;padding:9px 6px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--sans)}
+.tab.on{color:#fff;border-bottom-color:var(--gold)}
+.tab i{font-style:normal;font-family:var(--mono);font-size:11px;opacity:.7;display:block}
+
+.wrap{max-width:1400px;margin:0 auto;padding:14px 12px 0}
+.cols{display:block}
+.eyebrow{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-soft);font-weight:700;margin:18px 0 8px;display:flex;align-items:center;gap:10px}
+.eyebrow::after{content:"";flex:1;height:1px;background:var(--rule)}
+.eyebrow .btn{margin-left:auto}
+.hide{display:none}
+
+.room{background:var(--card);border:1px solid var(--rule);border-radius:10px;margin-bottom:10px;overflow:hidden}
+.rh{display:flex;align-items:center;gap:8px;padding:9px 10px;border-bottom:1px solid var(--rule);background:#F4F2EE}
+.rnum{font-family:var(--mono);font-size:12px;font-weight:700;color:#fff;background:var(--ink);border-radius:4px;padding:3px 7px;flex:none;cursor:pointer}
+.rname{flex:1;border:none;background:transparent;font-size:16px;font-weight:600;color:var(--ink);padding:4px 2px;min-width:0;font-family:var(--sans)}
+.rname:focus{outline:none;border-bottom:2px solid var(--gold)}
+.rsum{font-family:var(--mono);font-size:12px;color:var(--calc);font-weight:700;white-space:nowrap}
+.ib{flex:none;border:1px solid var(--rs);background:#fff;color:var(--ink-soft);border-radius:6px;width:31px;height:31px;font-size:14px;cursor:pointer;padding:0}
+.ib:hover{border-color:var(--gold);color:var(--ink)}
+.ib.del:hover{border-color:var(--alert);color:var(--alert)}
+.rb{padding:11px}
+.room.cl .rb{display:none}
+.room.cl .rh{border-bottom:none}
+
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chip{border:1px solid var(--rs);background:#fff;border-radius:999px;padding:6px 12px;font-size:13px;cursor:pointer;color:var(--ink-soft);font-family:var(--sans)}
+.chip:hover{border-color:var(--gold);color:var(--ink)}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff;font-weight:600}
+
+.row{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:9px;align-items:flex-end}
+.f{display:flex;flex-direction:column;gap:3px}
+.f label{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);font-weight:700}
+.f input{border:1px solid var(--rs);border-radius:7px;padding:9px;font-size:16px;background:#fff;color:var(--ink);font-family:var(--sans)}
+.f input[type=number]{font-family:var(--mono);text-align:right}
+.f input:focus{outline:2px solid var(--gold);outline-offset:-1px;border-color:var(--gold)}
+.w64{width:64px}.w78{width:78px}.w92{width:92px}.grow{flex:1;min-width:120px}
+.rect{display:flex;align-items:flex-end;gap:7px;margin-bottom:7px}
+.tm{font-family:var(--mono);color:var(--ink-soft);padding-bottom:10px}
+.ra{font-family:var(--mono);font-size:13px;color:var(--calc);font-weight:700;padding-bottom:10px;min-width:64px}
+.add{border:1px dashed var(--rs);background:transparent;color:var(--ink-soft);border-radius:7px;padding:8px 12px;font-size:13px;cursor:pointer;font-family:var(--sans)}
+.add:hover{border-color:var(--gold);color:var(--ink)}
+.chk{display:flex;align-items:center;gap:8px;font-size:14px;padding:5px 0}
+.chk input{width:20px;height:20px;accent-color:var(--gold)}
+.out{background:var(--ink);color:#fff;margin:11px -11px -11px;padding:9px 11px;display:grid;grid-template-columns:repeat(auto-fit,minmax(76px,1fr));gap:7px}
+.out div{border-left:2px solid var(--gold);padding-left:7px}
+.out b{display:block;font-family:var(--mono);font-size:14px;font-weight:700}
+.out span{font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:#9A9DA4}
+
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--rule);border-radius:10px;overflow:hidden}
+th{background:var(--ink);color:#fff;font-size:9px;letter-spacing:.1em;text-transform:uppercase;text-align:left;padding:8px;font-weight:700}
+td{padding:6px 8px;border-top:1px solid var(--rule);font-size:13px;vertical-align:middle}
+tr.sec td{background:#F4F2EE;font-weight:700;font-size:11px;letter-spacing:.12em;text-transform:uppercase;border-top:2px solid var(--ink)}
+th.s,td.s{width:30px;text-align:center}
+td.s input{width:19px;height:19px;accent-color:var(--gold);cursor:pointer}
+td.mj{font-family:var(--mono);color:var(--ink-soft);width:30px;font-size:12px}
+td.q input{width:82px;font-family:var(--mono);text-align:right;border:1px solid var(--rule);border-radius:5px;padding:5px 6px;font-size:13px}
+td.q input:focus{outline:2px solid var(--gold);outline-offset:-1px}
+td.q input.auto{background:#EEF3F0;border-color:#BBD5CB}
+td.q input.man{border-color:var(--gold);background:#FDFAF2}
+td.p{font-family:var(--mono);text-align:right;color:var(--ink-soft);width:62px;font-size:12px;white-space:nowrap}
+td.t{font-family:var(--mono);text-align:right;font-weight:700;color:var(--calc);width:82px;white-space:nowrap}
+tr.off{opacity:.4}
+.star{color:var(--gold);font-size:11px;margin-left:5px;letter-spacing:-1px}
+
+.sumbox{background:#fff;border:1px solid var(--rule);border-radius:10px;overflow:hidden;margin-bottom:10px}
+.sumbox table{border:none;border-radius:0}
+.sumbox td{font-size:12px;padding:5px 8px}
+.sumbox td.nm{font-family:var(--mono);text-align:right;white-space:nowrap}
+.sumbox tfoot td{font-weight:700;border-top:2px solid var(--ink);background:#F4F2EE}
+
+.panel{background:#fff;border:1px solid var(--rule);border-radius:10px;padding:12px;margin-bottom:10px}
+textarea{width:100%;border:1px solid var(--rs);border-radius:8px;padding:10px;font-size:14px;font-family:var(--sans);resize:vertical;min-height:84px;color:var(--ink)}
+textarea:focus{outline:2px solid var(--gold);outline-offset:-1px;border-color:var(--gold)}
+
+.money{border:1px solid var(--rule);border-radius:10px;overflow:hidden;background:#fff}
+.mrow{display:flex;justify-content:space-between;align-items:baseline;padding:9px 12px;border-bottom:1px solid var(--rule);font-size:14px}
+.mrow b{font-family:var(--mono);font-weight:700}
+.mrow.sm{font-size:12px;color:var(--ink-soft)}
+.grand{background:var(--ink);color:#fff;padding:12px}
+.grand .lab{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#9A9DA4}
+.grand .val{font-family:var(--mono);font-size:25px;font-weight:700;line-height:1.1}
+.grand .sub{font-family:var(--mono);font-size:14px;color:var(--gold);margin-top:2px}
+.warn{font-size:11px;color:var(--alert);padding:8px 12px;line-height:1.45;background:#FDF6F4;border-top:1px solid var(--rule)}
+
+.status{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-soft)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--rs)}
+.dot.ok{background:var(--calc)}.dot.bad{background:var(--alert)}
+.log{font-family:var(--mono);font-size:11px;line-height:1.5;background:#F4F2EE;border:1px solid var(--rule);border-radius:8px;padding:9px;margin-top:9px;max-height:180px;overflow:auto;white-space:pre-wrap}
+.log:empty{display:none}
+.log .g{color:var(--calc)}.log .r{color:var(--alert)}
+.actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px;align-items:center}
+.btn{border:1px solid var(--ink);background:var(--ink);color:#fff;border-radius:8px;padding:10px 14px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--sans)}
+.btn.ghost{background:#fff;color:var(--ink)}
+.btn.gold{background:var(--gold);border-color:var(--gold);color:var(--ink)}
+.btn.sm{padding:7px 11px;font-size:12px}
+.note{font-size:12px;color:var(--ink-soft);line-height:1.55;margin:10px 0 26px}
+.note b{color:var(--ink)}
+.empty{border:1px dashed var(--rs);border-radius:10px;padding:24px;text-align:center;color:var(--ink-soft);font-size:14px}
+
+.total{position:fixed;left:0;right:0;bottom:0;background:var(--ink);color:#fff;border-top:3px solid var(--gold);padding:9px 12px calc(9px + env(safe-area-inset-bottom));display:flex;gap:10px;align-items:center;justify-content:space-between;z-index:50}
+.total .grp{display:flex;gap:14px;flex-wrap:wrap}
+.total .kv b{display:block;font-family:var(--mono);font-size:16px;line-height:1.1}
+.total .kv b.eur{color:var(--gold)}
+.total .kv span{font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:#9A9DA4}
+.total button{border:none;background:var(--gold);color:var(--ink);border-radius:8px;padding:10px 13px;font-weight:700;font-size:14px;cursor:pointer;font-family:var(--sans)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:88px;z-index:60;background:var(--calc);color:#fff;padding:10px 15px;border-radius:8px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .18s;max-width:88vw}
+.toast.on{opacity:1}
+.undo{position:fixed;left:50%;transform:translateX(-50%);bottom:88px;z-index:61;background:var(--ink);color:#fff;padding:9px 12px;border-radius:8px;font-size:13px;display:none;align-items:center;gap:12px}
+.undo.on{display:flex}
+.undo button{background:var(--gold);border:none;color:var(--ink);border-radius:6px;padding:6px 11px;font-weight:700;cursor:pointer}
+
+@media (min-width:1000px){
+  .cols{display:grid;grid-template-columns:1fr 380px;gap:20px;align-items:start}
+  .side{position:sticky;top:158px}
+  body{padding-bottom:20px}
+  .total{display:none}
+}
+@media print{header,.total,.actions,.ib,.add,.chips,.undo{display:none}body{padding-bottom:0}.cols{display:block}}
+</style>
+</head>
+<body>
+
+<header>
+  <img class="logo" alt="PRERAB" src="data:image/png;base64,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">
+  <div class="hgrid">
+    <div class="hf"><label>Объект</label><input id="objName" placeholder="напр. Jaslovska, byt 3"></div>
+    <div class="hf cp n"><label>Номер CP</label><input id="cpNum" placeholder="CP19082026"></div>
+    <div class="hf n"><label>Высота, м</label><input id="globalH" type="number" step="0.01" value="2.60" inputmode="decimal"></div>
+  </div>
+  <div class="tabs">
+    <button class="tab on" id="tab1" onclick="go(1)">Замер<i id="tab1i">0 комнат</i></button>
+    <button class="tab" id="tab2" onclick="go(2)">Позиции<i id="tab2i">—</i></button>
+  </div>
+</header>
+
+<div class="wrap"><div class="cols">
+<div class="main">
+
+  <div id="step1">
+    <div class="eyebrow">Помещения<button class="btn ghost sm" onclick="collapseAll()">Свернуть всё</button></div>
+    <div id="rooms"></div>
+    <button class="add" style="width:100%;padding:13px" onclick="addRoom()">+ Добавить помещение</button>
+    <div class="eyebrow">Сводка по замеру</div>
+    <div class="sumbox" id="summary"></div>
+    <p class="note">
+      <b>Тип пола</b> выбирается на втором шаге — там весь список из CP.<br>
+      <b>Периметр</b> считается по первому прямоугольнику, для Г-образных впиши вручную.<br>
+      <b>Пресет Kúpeľňa или WC</b> помечает комнату как санузел — по ней потом сами заполнятся количества в блоке ванной.<br>
+      <b>Enter</b> — переход к следующему полю.
+    </p>
+    <div class="actions" style="margin-bottom:26px"><button class="btn gold" onclick="go(2)">Дальше — позиции →</button></div>
+  </div>
+
+  <div id="step2" class="hide">
+    <div class="eyebrow">Позиции из CP<span class="status" style="margin-left:auto"><span class="dot" id="cpDot"></span><span id="cpState">не загружено</span></span></div>
+    <div id="cpTable"><div class="empty">Нажми «Загрузить из CP» в панели справа.</div></div>
+
+    <div class="eyebrow">Kúpeľňa — отдельный расчёт</div>
+    <table><thead><tr>
+      <th class="s">✓</th><th>Položka</th><th class="mj">MJ</th>
+      <th style="text-align:right">Množ.</th><th style="text-align:right">€/MJ</th><th style="text-align:right">Spolu</th>
+    </tr></thead><tbody id="bathTable"></tbody></table>
+
+    <div class="eyebrow">Заметки</div>
+    <div class="panel">
+      <textarea id="noteTxt" placeholder="Что заметил на объекте: состояние стен, нестандартные узлы, договорённости с клиентом…"></textarea>
+      <div style="font-size:11px;color:var(--ink-soft);margin-top:6px">Попадёт в CP в свободную строку над «Celkom stavebné práce». Пусто — ничего не пишется.</div>
+    </div>
+
+    <p class="note">Позиции со <span class="star">★</span> заполняются чаще всего — посчитано по твоим сметам CHEMICKA, HERGOVIC и CP_FINAL. Зелёные поля подставил алгоритм, золотые ты правил руками — они при пересчёте не затираются.</p>
+  </div>
+
+</div>
+
+<div class="side">
+  <div class="eyebrow">Сумма</div>
+  <div class="money">
+    <div class="mrow"><span>Práce podľa CP</span><b id="mCp">0,00 €</b></div>
+    <div class="mrow"><span>Kúpeľňa</span><b id="mBath">0,00 €</b></div>
+    <div class="mrow sm"><span>+ manipulácia 5 %</span><b id="mMan">0,00 €</b></div>
+    <div class="grand">
+      <div class="lab">Spolu bez DPH</div>
+      <div class="val" id="mNet">0,00 €</div>
+      <div class="sub" id="mVat">s DPH 23 % — 0,00 €</div>
+    </div>
+    <div class="mrow"><span>Cena za m² podlahy</span><b id="mM2">—</b></div>
+    <div class="warn">Iba práce. Bez materiálu, dverí, okien, sanity a odvozu odpadu.</div>
+  </div>
+
+  <div class="eyebrow">Связь с CP</div>
+  <div class="panel">
+    <div class="row">
+      <div class="f grow"><label>Adresa Web App</label><input id="cpUrl" placeholder="https://script.google.com/macros/s/.../exec"></div>
+      <div class="f"><label>Token</label><input id="cpToken" class="w92" placeholder="prerab2026"></div>
+    </div>
+    <div class="actions">
+      <button class="btn ghost sm" onclick="loadCP()">Загрузить из CP</button>
+      <button class="btn gold sm" onclick="sendCP()">Записать в CP</button>
+    </div>
+    <div style="font-size:11px;color:var(--ink-soft);margin-top:7px" id="cpInfo"></div>
+    <div class="log" id="cpLog"></div>
+  </div>
+
+  <div class="eyebrow">Файлы</div>
+  <div class="actions" style="margin:0 0 26px">
+    <button class="btn ghost sm" onclick="saveJSON()">Сохранить</button>
+    <button class="btn ghost sm" onclick="document.getElementById('lf').click()">Открыть</button>
+    <button class="btn ghost sm" onclick="downloadCSV()">CSV</button>
+    <input type="file" id="lf" accept=".json" style="display:none" onchange="loadJSON(event)">
+  </div>
+</div>
+</div></div>
+
+<div class="total">
+  <div class="grp">
+    <div class="kv"><b id="tFloor">0,00</b><span>Пол м²</span></div>
+    <div class="kv"><b id="tWall">0,00</b><span>Стены м²</span></div>
+    <div class="kv"><b class="eur" id="tEur">—</b><span>Bez DPH</span></div>
+  </div>
+  <button id="tBtn" onclick="addRoom()">+ Комната</button>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="undo" id="undo"><span id="undoTxt">Удалено</span><button onclick="undoDel()">Вернуть</button></div>
+
+<script>
+let rooms=[], seq=0, step=1;
+let cpItems=[], cpLoaded=false, meta={};
+let sel={}, qty={}, man={};
+let lastDel=null, delTimer=null;
+
+const PRESETS={
+  'Kúpeľňa':{obklad:2.10,doors:1,bath:true},
+  'WC':{obklad:2.10,doors:1,bath:true},
+  'Kuchyňa':{obklad:0.60,doors:1,bath:false},
+  'Spálňa':{obklad:0,doors:1,bath:false},
+  'Obývačka':{obklad:0,doors:1,bath:false},
+  'Chodba':{obklad:0,doors:2,bath:false}
+};
+
+/* частота по трём реальным сметам PRERAB */
+const FREQ=[
+  ['búranie dlažieb',3],['demontáž a odvoz starého nábytku',3],['demontáž záchoda',3],
+  ['demontáž umývadiel',3],['vybúranie kovových dverových zárubní a demontáž dverného krídla',3],
+  ['skladka odpadu',3],['prípojné body vody a kanalizácie',3],
+  ['príprava vnútorného podkladu stien weber',3],['montáž drevených dverových zárubní',3],
+  ['odstranenie malieb oškrabaním',2],['demontáž podláh drevených',2],['odstránenie linolea lepeného',2],
+  ['demontáž vane do sute',2],['prenájom kontajneru',2],['podhľad sdk biely',2],
+  ['priečka ytong 150',2],['stierkovanie stien',2],['montáž sdk prefabrikovaného výrobku tvaru l',2],
+  ['demontáž + montáž + hrubý materiál',2],['maľby akrylátové',2],
+  ['montáž vinylovej kompozitnej podlahy klik systém položena',2],['mdf lišty pod 45',2]
+];
+
+const BATH_DEF=[
+  ['Montáž dlažby/obkladov + škárovanie','m2',55,'bathTile'],
+  ['Hydroizolácia – 2 vrstvy + hydroizolačné pásky','m2',25,'bathTile'],
+  ['Vyrovnanie stien pred pokládkou obkladov','m2',10,'bathObk'],
+  ['Jolly hrana s epoxidovou hranou','bm',60,null],
+  ['Osadenie Geberitu','ks',250,'bathCnt'],
+  ['Revízne dvierka do kúpeľne s obkladom','ks',50,'bathCnt'],
+  ['Pripojenie vane + silikónovanie','ks',200,'bathCnt'],
+  ['Napojenie umývadla + sifón + skrinka + silikónovanie','ks',200,'bathCnt'],
+  ['Montáž skrinky navyše do kúpeľne','ks',100,null],
+  ['Zavesenie zrkadla','ks',20,'bathCnt'],
+  ['Napojenie práčky','ks',20,null],
+  ['Napojenie sprchovej/vaňovej batérie','ks',100,'bathCnt'],
+  ['Napojenie umývadlovej batérie','ks',20,'bathCnt'],
+  ['Napojenie podomietkovej batérie','ks',50,null],
+  ['Osadenie skla do vane/sprchy','ks',100,null],
+  ['Osadenie sprchového žľabu + murovanie sprchovej vaničky','ks',300,null],
+  ['Napojenie radiátora v kúpeľni','ks',100,'bathCnt'],
+  ['Nika v priečke – vyrezanie otvoru v murive','ks',50,null],
+  ['Montáž ventilátora','ks',25,'bathCnt'],
+  ['Napojenie bidetovej súpravy + osadenie','ks',100,null]
+];
+let bath=BATH_DEF.map(b=>({name:b[0],mj:b[1],price:b[2],src:b[3],qty:0,on:false,man:false}));
+
+const nf=x=>(Math.round(x*100)/100).toFixed(2).replace('.',',');
+const eur=x=>nf(x)+' €';
+const num=v=>{const n=parseFloat(String(v).replace(',','.'));return isFinite(n)?n:0;};
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+const norm=s=>String(s||'').toLowerCase().replace(/\u00a0/g,' ').replace(/[.,;:()\/]/g,'').replace(/\s+/g,' ').trim();
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),1800);}
+function logCP(t,k){const el=document.getElementById('cpLog');const c=k?' class="'+k+'"':'';el.innerHTML=`<span${c}>[${new Date().toLocaleTimeString('sk-SK')}] ${t}</span>\n`+el.innerHTML;}
+const freqOf=n=>{const x=norm(n);for(const[p,c]of FREQ)if(x.indexOf(p)===0)return c;return 0;};
+
+function blank(){seq++;return{id:seq,name:'',preset:'',bath:false,open:true,h:null,rects:[{l:'',w:''}],
+  perim:null,doors:1,doorW:0.8,doorH:2.0,windows:0,winW:1.5,winH:1.5,tile:false,obkladH:2.10};}
+
+function calc(r){
+  const H=(r.h!==null&&r.h!=='')?num(r.h):num(document.getElementById('globalH').value);
+  const areas=r.rects.map(x=>num(x.l)*num(x.w));
+  const floor=areas.reduce((a,b)=>a+b,0);
+  const p0=2*(num(r.rects[0].l)+num(r.rects[0].w));
+  const perim=(r.perim!==null&&r.perim!=='')?num(r.perim):p0;
+  const dA=r.doors*num(r.doorW)*num(r.doorH), wA=r.windows*num(r.winW)*num(r.winH);
+  const wallN=Math.max(0,perim*H-dA-wA);
+  const obk=r.tile&&num(r.obkladH)>0?Math.max(0,perim*num(r.obkladH)-dA):0;
+  const sokle=Math.max(0,perim-r.doors*num(r.doorW));
+  const ost=r.windows*(2*num(r.winW)+2*num(r.winH));
+  return{H,areas,floor,perim,p0,wallN,obk,sokle,ost};
+}
+
+function T(){
+  const t={floor:0,wall:0,strop:0,obk:0,sokle:0,ost:0,doors:0,wins:0,
+           bathFloor:0,bathObk:0,bathCnt:0,kitchen:0};
+  rooms.forEach(r=>{const c=calc(r);
+    t.floor+=c.floor;t.strop+=c.floor;t.wall+=c.wallN;t.obk+=c.obk;
+    t.sokle+=c.sokle;t.ost+=c.ost;t.doors+=r.doors;t.wins+=r.windows;
+    if(r.bath){t.bathFloor+=c.floor;t.bathObk+=c.obk;t.bathCnt+=1;}
+    if(r.preset==='Kuchyňa')t.kitchen+=1;});
+  t.bathTile=t.bathFloor+t.bathObk;
+  return t;
+}
+
+function roomHTML(r,i){
+  const c=calc(r);
+  const rects=r.rects.map((x,j)=>`
+    <div class="rect">
+      <div class="f"><label>${j?'+ Длина':'Длина, м'}</label><input class="w78 nav" type="number" step="0.01" inputmode="decimal" value="${x.l}" oninput="up(${r.id},'rect',${j},'l',this.value)"></div>
+      <div class="tm">×</div>
+      <div class="f"><label>${j?'+ Ширина':'Ширина, м'}</label><input class="w78 nav" type="number" step="0.01" inputmode="decimal" value="${x.w}" oninput="up(${r.id},'rect',${j},'w',this.value)"></div>
+      <div class="ra">${nf(c.areas[j])} м²</div>
+      ${j?`<button class="ib del" onclick="delRect(${r.id},${j})">−</button>`:''}
+    </div>`).join('');
+  return `<div class="room ${r.open?'':'cl'}">
+    <div class="rh">
+      <div class="rnum" onclick="tog(${r.id})">${String(i+1).padStart(2,'0')}</div>
+      <input class="rname" placeholder="Название помещения" value="${esc(r.name)}" oninput="up(${r.id},'name',null,null,this.value)">
+      <span class="rsum">${nf(c.floor)} м²</span>
+      <button class="ib" onclick="dup(${r.id})">⧉</button>
+      <button class="ib del" onclick="del(${r.id})">×</button>
+    </div>
+    <div class="rb">
+      <div class="chips">${Object.keys(PRESETS).map(p=>`<button class="chip ${r.preset===p?'on':''}" onclick="preset(${r.id},'${p}')">${p}</button>`).join('')}</div>
+      ${rects}
+      <button class="add" onclick="addRect(${r.id})">+ Ещё прямоугольник</button>
+      <div class="row" style="margin-top:11px">
+        <div class="f"><label>Высота, м</label><input class="w78 nav" type="number" step="0.01" inputmode="decimal" placeholder="${nf(num(document.getElementById('globalH').value))}" value="${r.h===null?'':r.h}" oninput="up(${r.id},'h',null,null,this.value)"></div>
+        <div class="f"><label>Периметр, м</label><input class="w92 nav" type="number" step="0.01" inputmode="decimal" placeholder="${nf(c.p0)}" value="${r.perim===null?'':r.perim}" oninput="up(${r.id},'perim',null,null,this.value)"></div>
+      </div>
+      <div class="row">
+        <div class="f"><label>Дверей</label><input class="w64 nav" type="number" step="1" min="0" inputmode="numeric" value="${r.doors}" oninput="up(${r.id},'doors',null,null,this.value)"></div>
+        <div class="f"><label>Ш двери</label><input class="w64" type="number" step="0.01" inputmode="decimal" value="${r.doorW}" oninput="up(${r.id},'doorW',null,null,this.value)"></div>
+        <div class="f"><label>В двери</label><input class="w64" type="number" step="0.01" inputmode="decimal" value="${r.doorH}" oninput="up(${r.id},'doorH',null,null,this.value)"></div>
+        <div class="f"><label>Окон</label><input class="w64 nav" type="number" step="1" min="0" inputmode="numeric" value="${r.windows}" oninput="up(${r.id},'windows',null,null,this.value)"></div>
+        <div class="f"><label>Ш окна</label><input class="w64" type="number" step="0.01" inputmode="decimal" value="${r.winW}" oninput="up(${r.id},'winW',null,null,this.value)"></div>
+        <div class="f"><label>В окна</label><input class="w64" type="number" step="0.01" inputmode="decimal" value="${r.winH}" oninput="up(${r.id},'winH',null,null,this.value)"></div>
+      </div>
+      <label class="chk"><input type="checkbox" ${r.tile?'checked':''} onchange="up(${r.id},'tile',null,null,this.checked)"> Стены — плитка</label>
+      ${r.tile?`<div class="row"><div class="f"><label>Высота обклада, м</label><input class="w92" type="number" step="0.01" inputmode="decimal" value="${r.obkladH}" oninput="up(${r.id},'obkladH',null,null,this.value)"></div></div>`:''}
+      <label class="chk"><input type="checkbox" ${r.bath?'checked':''} onchange="up(${r.id},'bath',null,null,this.checked)"> Санузел — считать в блок Kúpeľňa</label>
+      <div class="out">
+        <div><b>${nf(c.floor)}</b><span>Пол м²</span></div>
+        <div><b>${nf(c.perim)}</b><span>Периметр</span></div>
+        <div><b>${nf(c.wallN)}</b><span>Стены м²</span></div>
+        <div><b>${nf(c.obk)}</b><span>Обклад м²</span></div>
+        <div><b>${nf(c.sokle)}</b><span>Плинтус bm</span></div>
+      </div>
+    </div></div>`;
+}
+
+function renderRooms(){
+  const b=document.getElementById('rooms');
+  b.innerHTML=rooms.length?rooms.map(roomHTML).join(''):'<div class="empty">Добавь первое помещение.</div>';
+  document.getElementById('tab1i').textContent=rooms.length+' комнат';
+  bindNav(); renderSummary(); refresh();
+}
+
+function renderSummary(){
+  if(!rooms.length){document.getElementById('summary').innerHTML='<div class="empty" style="border:none">Пока нечего показывать</div>';return;}
+  const t=T();
+  const rowsH=rooms.map((r,i)=>{const c=calc(r);
+    return `<tr><td>${String(i+1).padStart(2,'0')} ${esc(r.name||'—')}${r.bath?' <span class="star">◈</span>':''}</td>
+      <td class="nm">${nf(c.floor)}</td><td class="nm">${nf(c.perim)}</td><td class="nm">${nf(c.wallN)}</td>
+      <td class="nm">${nf(c.obk)}</td><td class="nm">${nf(c.sokle)}</td><td class="nm">${r.doors}</td><td class="nm">${r.windows}</td></tr>`;}).join('');
+  document.getElementById('summary').innerHTML=`<table>
+    <thead><tr><th>Помещение</th><th style="text-align:right">Пол</th><th style="text-align:right">Обвод</th>
+    <th style="text-align:right">Стены</th><th style="text-align:right">Обклад</th><th style="text-align:right">Плинтус</th>
+    <th style="text-align:right">Дв</th><th style="text-align:right">Ок</th></tr></thead>
+    <tbody>${rowsH}</tbody>
+    <tfoot><tr><td>Итого</td><td class="nm">${nf(t.floor)}</td><td class="nm">${nf(t.sokle+t.doors*0.8)}</td>
+    <td class="nm">${nf(t.wall)}</td><td class="nm">${nf(t.obk)}</td><td class="nm">${nf(t.sokle)}</td>
+    <td class="nm">${t.doors}</td><td class="nm">${t.wins}</td></tr></tfoot></table>`;
+}
+
+function up(id,f,ri,k,v){
+  const r=rooms.find(x=>x.id===id); if(!r) return;
+  if(f==='rect') r.rects[ri][k]=v;
+  else if(f==='h'||f==='perim') r[f]=(v===''?null:v);
+  else if(f==='tile'){r.tile=v;renderRooms();return;}
+  else if(f==='bath'){r.bath=v;renderRooms();autoBath();renderBath();return;}
+  else if(f==='doors'||f==='windows') r[f]=Math.max(0,parseInt(v)||0);
+  else r[f]=v;
+  soft();
+}
+
+function soft(){
+  rooms.forEach((r,i)=>{const c=calc(r),card=document.querySelectorAll('.room')[i];if(!card)return;
+    card.querySelectorAll('.ra').forEach((el,j)=>el.textContent=nf(c.areas[j])+' м²');
+    card.querySelector('.rsum').textContent=nf(c.floor)+' м²';
+    const o=card.querySelectorAll('.out b'),v=[c.floor,c.perim,c.wallN,c.obk,c.sokle];
+    o.forEach((el,j)=>el.textContent=nf(v[j]));});
+  renderSummary(); autofill(); autoBath(); refresh();
+  if(step===2){renderCP();renderBath();}
+}
+
+function addRoom(){rooms.push(blank());renderRooms();
+  setTimeout(()=>{const n=document.querySelectorAll('.rname');if(n.length)n[n.length-1].focus();},40);}
+function del(id){const i=rooms.findIndex(x=>x.id===id);if(i<0)return;
+  lastDel={i,r:rooms[i]};rooms.splice(i,1);renderRooms();
+  const u=document.getElementById('undo');
+  document.getElementById('undoTxt').textContent='Удалено: '+(lastDel.r.name||'без названия');
+  u.classList.add('on');clearTimeout(delTimer);delTimer=setTimeout(()=>u.classList.remove('on'),6000);}
+function undoDel(){if(!lastDel)return;rooms.splice(lastDel.i,0,lastDel.r);lastDel=null;
+  document.getElementById('undo').classList.remove('on');renderRooms();}
+function dup(id){const r=rooms.find(x=>x.id===id);if(!r)return;
+  const c=JSON.parse(JSON.stringify(r));c.id=++seq;c.name=(r.name||'Комната')+' 2';c.open=true;
+  rooms.splice(rooms.indexOf(r)+1,0,c);renderRooms();toast('Скопировано');}
+function tog(id){const r=rooms.find(x=>x.id===id);r.open=!r.open;renderRooms();}
+function collapseAll(){const any=rooms.some(r=>r.open);rooms.forEach(r=>r.open=!any);renderRooms();}
+function addRect(id){rooms.find(x=>x.id===id).rects.push({l:'',w:''});renderRooms();}
+function delRect(id,i){rooms.find(x=>x.id===id).rects.splice(i,1);renderRooms();}
+function preset(id,p){const r=rooms.find(x=>x.id===id),d=PRESETS[p];
+  r.preset=p;if(!r.name)r.name=p;r.obkladH=d.obklad;r.tile=d.obklad>0;r.doors=d.doors;r.bath=d.bath;
+  renderRooms();autoBath();renderBath();}
+function bindNav(){const inp=[...document.querySelectorAll('#rooms input.nav, #rooms .rname')];
+  inp.forEach((el,i)=>el.addEventListener('keydown',e=>{if(e.key!=='Enter')return;e.preventDefault();
+    if(i+1<inp.length)inp[i+1].focus();else addRoom();}));}
+
+function go(n){
+  step=n;
+  document.getElementById('step1').classList.toggle('hide',n!==1);
+  document.getElementById('step2').classList.toggle('hide',n!==2);
+  document.getElementById('tab1').classList.toggle('on',n===1);
+  document.getElementById('tab2').classList.toggle('on',n===2);
+  document.getElementById('tBtn').textContent=n===1?'+ Комната':'Записать в CP';
+  document.getElementById('tBtn').onclick=n===1?addRoom:sendCP;
+  if(n===2){autofill();autoBath();renderCP();renderBath();}
+  window.scrollTo(0,0);
+}
+
+/* ---- автозаполнение позиций CP ---- */
+const MAP=[
+  [/^odstranenie omietky/,'wall'],
+  [/^odstranenie malieb/,'wall+strop'],
+  [/^stierkovanie stien/,'wall'],
+  [/^stierkovanie jedna vrstva/,'wall'],
+  [/^príprava vnútorného podkladu stien weber/,'wall+strop'],
+  [/^maľby akrylátové/,'wall+strop'],
+  [/^sadrova omietka/,'wall'],
+  [/^sieťkovanie stien/,'wall'],
+  [/^montáž obkladov vnútor/,'obk'],
+  [/^vybúranie kovových dverových zárubní a demontáž dverného krídla$/,'doors'],
+  [/^montáž drevených dverových zárubní/,'doors'],
+  [/^ostenie okien/,'ost'],
+  [/^demontáž \+ montáž \+ hrubý materiál/,'floor'],
+  [/^elektroinštalácia demontáž/,'floor'],
+  [/^búranie dlažieb/,'floor'],
+  [/^vyspravenie podkladu nivelačnou stierkou hr 5 mm/,'floor'],
+  [/^lepenie a rezanie podlahových keramických soklov/,'sokle'],
+  [/^mdf lišty pod 45/,'sokle'],
+  [/^demontáž záchoda/,'bathCnt'],
+  [/^demontáž umývadiel/,'bathCnt'],
+  [/^demontáž vane do sute/,'bathCnt'],
+  [/^prípojné body vody a kanalizácie/,'points']
+];
+function val(k,t){
+  switch(k){
+    case 'wall':return t.wall; case 'floor':return t.floor; case 'obk':return t.obk;
+    case 'ost':return t.ost; case 'doors':return t.doors; case 'sokle':return t.sokle;
+    case 'wall+strop':return t.wall+t.strop; case 'bathCnt':return t.bathCnt;
+    case 'points':return t.bathCnt*3+t.kitchen*2;
+  } return 0;
+}
+function autofill(){
+  if(!cpLoaded)return; const t=T();
+  cpItems.forEach(it=>{
+    if(it.section||man[it.row])return;
+    const n=norm(it.name);
+    for(const[re,k]of MAP){
+      if(re.test(n)){
+        const v=val(k,t);
+        if(v>0){qty[it.row]=Math.round(v*100)/100;if(sel[it.row]===undefined)sel[it.row]=true;}
+        else delete qty[it.row];
+        return;
+      }
+    }
+  });
+}
+
+function renderCP(){
+  if(!cpLoaded)return;
+  const rows=cpItems.map(it=>{
+    if(it.section)return `<tr class="sec"><td colspan="6">${esc(it.name)}</td></tr>`;
+    const q=qty[it.row]||0,on=!!sel[it.row],tot=q*(it.price||0),fr=freqOf(it.name);
+    return `<tr class="${on?'':'off'}">
+      <td class="s"><input type="checkbox" ${on?'checked':''} onchange="sel[${it.row}]=this.checked;refresh();renderCP()"></td>
+      <td>${esc(it.name)}${fr?`<span class="star" title="заполнено в ${fr} из 3 смет">${'★'.repeat(fr-1)}</span>`:''}</td>
+      <td class="mj">${esc(it.mj||'')}</td>
+      <td class="q"><input type="number" step="0.01" inputmode="decimal" class="${man[it.row]?'man':(q?'auto':'')}" value="${q?q:''}" oninput="setQ(${it.row},this.value)"></td>
+      <td class="p">${it.price?nf(it.price):'—'}</td>
+      <td class="t">${tot?eur(tot):''}</td></tr>`;
+  }).join('');
+  document.getElementById('cpTable').innerHTML=
+    `<table><thead><tr><th class="s">✓</th><th>Popis položky</th><th class="mj">MJ</th>
+     <th style="text-align:right">Množstvo</th><th style="text-align:right">€/MJ</th><th style="text-align:right">Spolu</th>
+     </tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function setQ(row,v){
+  qty[row]=num(v); man[row]=true;
+  if(num(v)>0&&sel[row]===undefined)sel[row]=true;
+  refresh(); updTotals();
+}
+function updTotals(){
+  const tb=document.querySelector('#cpTable tbody');if(!tb)return;
+  [...tb.querySelectorAll('tr')].forEach(tr=>{
+    const inp=tr.querySelector('td.q input');if(!inp)return;
+    const price=num(tr.querySelector('td.p').textContent),q=num(inp.value);
+    tr.querySelector('td.t').textContent=q*price?eur(q*price):'';});
+}
+
+/* ---- ванная ---- */
+function autoBath(){
+  const t=T();
+  bath.forEach(b=>{
+    if(b.man||!b.src)return;
+    const v=t[b.src]||0;
+    if(v>0){b.qty=Math.round(v*100)/100;b.on=true;}
+    else if(!b.man){b.qty=0;b.on=false;}
+  });
+}
+function renderBath(){
+  document.getElementById('bathTable').innerHTML=bath.map((b,i)=>`
+    <tr class="${b.on?'':'off'}">
+      <td class="s"><input type="checkbox" ${b.on?'checked':''} onchange="bathSet(${i},'on',this.checked)"></td>
+      <td>${esc(b.name)}</td><td class="mj">${b.mj}</td>
+      <td class="q"><input type="number" step="0.01" inputmode="decimal" class="${b.man?'man':(b.qty?'auto':'')}" value="${b.qty||''}" oninput="bathSet(${i},'qty',this.value)"></td>
+      <td class="q"><input type="number" step="0.01" inputmode="decimal" value="${b.price}" oninput="bathSet(${i},'price',this.value)"></td>
+      <td class="t">${b.on&&b.qty?eur(b.qty*b.price):''}</td></tr>`).join('');
+}
+function bathSet(i,k,v){
+  if(k==='on'){bath[i].on=v;bath[i].man=true;if(v&&!bath[i].qty)bath[i].qty=1;renderBath();}
+  else{bath[i][k]=num(v);if(k==='qty')bath[i].man=true;
+    const tr=document.querySelectorAll('#bathTable tr')[i];
+    tr.querySelector('td.t').textContent=bath[i].on&&bath[i].qty?eur(bath[i].qty*bath[i].price):'';}
+  refresh();
+}
+const bathSum=()=>bath.filter(b=>b.on).reduce((a,b)=>a+b.qty*b.price,0);
+
+function cpSum(){return cpItems.reduce((a,it)=>it.section||!sel[it.row]?a:a+(qty[it.row]||0)*(it.price||0),0);}
+function refresh(){
+  const t=T(),c=cpSum(),b=bathSum(),m5=b*0.05,net=c+b+m5;
+  document.getElementById('mCp').textContent=eur(c);
+  document.getElementById('mBath').textContent=eur(b);
+  document.getElementById('mMan').textContent=eur(m5);
+  document.getElementById('mNet').textContent=eur(net);
+  document.getElementById('mVat').textContent='s DPH 23 % — '+eur(net*1.23);
+  document.getElementById('mM2').textContent=t.floor>0?eur(net/t.floor)+' / m²':'—';
+  document.getElementById('tFloor').textContent=nf(t.floor);
+  document.getElementById('tWall').textContent=nf(t.wall);
+  document.getElementById('tEur').textContent=net>0?eur(net):'—';
+  document.getElementById('tab2i').textContent=cpLoaded?eur(net):'—';
+}
+
+const cfg=()=>({url:document.getElementById('cpUrl').value.trim(),token:document.getElementById('cpToken').value.trim()});
+function setDot(k,t){document.getElementById('cpDot').className='dot'+(k?' '+k:'');document.getElementById('cpState').textContent=t;}
+function saveCfg(){try{localStorage.setItem('prerab_url',cfg().url);localStorage.setItem('prerab_tok',cfg().token);}catch(e){}}
+function restoreCfg(){try{const u=localStorage.getItem('prerab_url'),t=localStorage.getItem('prerab_tok');
+  if(u)document.getElementById('cpUrl').value=u;if(t)document.getElementById('cpToken').value=t;}catch(e){}}
+function post(p){return fetch(cfg().url,{method:'POST',redirect:'follow',
+  headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(p)}).then(r=>r.json());}
+
+function loadCP(){
+  const c=cfg();if(!c.url){setDot('bad','нет адреса');logCP('Вставь адрес Web App','r');return;}
+  saveCfg();setDot('','загружаю…');
+  post({token:c.token,action:'items'}).then(d=>{
+    if(!d||!d.ok){setDot('bad','ошибка');logCP('Ошибка: '+((d&&d.error)||'нет ответа'),'r');return;}
+    cpItems=d.items||[];cpLoaded=true;meta=d;
+    setDot('ok','загружено');
+    document.getElementById('cpInfo').textContent=
+      `${d.count} строк, цены ${d.priceColumn}, с ценой ${d.withPrice}. Kúpeľňa: ${d.bathRow||'—'}, № CP: ${d.cpRow||'—'}, заметка: ${d.noteRow||'—'}.`;
+    logCP('Загружено '+d.count+' строк из «'+d.sheet+'»','g');
+    if(!d.bathRow)logCP('Строка «Celkom Kúpeľňa na kľúč» не найдена','r');
+    autofill();autoBath();renderCP();renderBath();refresh();toast('Позиции загружены');
+  }).catch(e=>{setDot('bad','нет связи');logCP('Не отвечает: '+e,'r');});
+}
+
+function sendCP(){
+  const c=cfg();if(!c.url){logCP('Вставь адрес Web App','r');return;}
+  if(!cpLoaded){logCP('Сначала загрузи позиции из CP','r');return;}
+  saveCfg();
+  const items=cpItems.filter(it=>!it.section&&sel[it.row]&&(qty[it.row]||0)>0)
+    .map(it=>({row:it.row,name:it.name,qty:Math.round(qty[it.row]*100)/100}));
+  const b=bathSum(), bs=b>0?Math.round(b*1.05*100)/100:null;
+  const cpn=document.getElementById('cpNum').value.trim()||null;
+  const note=document.getElementById('noteTxt').value.trim()||null;
+  if(!items.length&&!bs&&!cpn&&!note){logCP('Нечего отправлять','r');return;}
+  setDot('','записываю…');logCP('Отправляю '+items.length+' позиций'+(bs?' + ванная '+eur(bs):''));
+  post({token:c.token,action:'write',items:items,bathSum:bs,cpNumber:cpn,note:note}).then(d=>{
+    if(!d||!d.ok){setDot('bad','ошибка');logCP('Ошибка: '+((d&&d.error)||'нет ответа'),'r');return;}
+    setDot('ok','записано');
+    logCP('Записано '+d.written.length+' позиций','g');
+    (d.skipped||[]).forEach(s=>logCP('пропущено — '+s,'r'));
+    [d.bath,d.cp,d.note].forEach(x=>{if(x)logCP(x.msg,x.ok?'g':'r');});
+    toast('Записано в CP');
+  }).catch(e=>{setDot('bad','нет связи');logCP('Не прошло: '+e,'r');});
+}
+
+function dl(c,n,t){const b=new Blob([c],{type:t}),u=URL.createObjectURL(b),a=document.createElement('a');
+  a.href=u;a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);}
+const slug=()=>(document.getElementById('objName').value||'objekt').trim().replace(/[^\wÀ-ſа-яА-Я -]/g,'').replace(/\s+/g,'_').slice(0,40);
+
+function saveJSON(){
+  dl(JSON.stringify({objekt:document.getElementById('objName').value,cpNum:document.getElementById('cpNum').value,
+    vyska:document.getElementById('globalH').value,cpUrl:cfg().url,cpToken:cfg().token,
+    note:document.getElementById('noteTxt').value,rooms,sel,qty,man,bath},null,2),slug()+'_zameranie.json','application/json');
+  toast('Сохранено');
+}
+function loadJSON(e){
+  const f=e.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{const d=JSON.parse(r.result);
+    document.getElementById('objName').value=d.objekt||'';
+    document.getElementById('cpNum').value=d.cpNum||'';
+    document.getElementById('globalH').value=d.vyska||'2.60';
+    document.getElementById('noteTxt').value=d.note||'';
+    if(d.cpUrl)document.getElementById('cpUrl').value=d.cpUrl;
+    if(d.cpToken)document.getElementById('cpToken').value=d.cpToken;
+    rooms=(d.rooms||[]).map(x=>Object.assign(blank(),x,{id:++seq}));
+    sel=d.sel||{};qty=d.qty||{};man=d.man||{};if(d.bath)bath=d.bath;
+    renderRooms();renderBath();toast('Открыто');
+  }catch(err){toast('Файл не читается');}};
+  r.readAsText(f);e.target.value='';
+}
+function downloadCSV(){
+  let s='sep=;\n'+`Objekt;${document.getElementById('objName').value}\nCP;${document.getElementById('cpNum').value}\n\n`;
+  s+='Miestnost;Plocha m2;Obvod bm;Steny m2;Obklad m2;Sokle bm;Dvere;Okna\n';
+  rooms.forEach((r,i)=>{const c=calc(r);
+    s+=`${i+1}. ${r.name||'—'};${nf(c.floor)};${nf(c.perim)};${nf(c.wallN)};${nf(c.obk)};${nf(c.sokle)};${r.doors};${r.windows}\n`;});
+  s+='\nPolozka;MJ;Mnozstvo;Cena/MJ;Spolu\n';
+  cpItems.forEach(it=>{if(it.section||!sel[it.row]||!(qty[it.row]>0))return;
+    s+=`${it.name};${it.mj};${nf(qty[it.row])};${nf(it.price)};${nf(qty[it.row]*it.price)}\n`;});
+  s+='\nKupelna;MJ;Mnozstvo;Cena/MJ;Spolu\n';
+  bath.forEach(b=>{if(!b.on||!b.qty)return;s+=`${b.name};${b.mj};${nf(b.qty)};${nf(b.price)};${nf(b.qty*b.price)}\n`;});
+  s+=`;;;Manipulacia 5%;${nf(bathSum()*0.05)}\n`;
+  const nt=document.getElementById('noteTxt').value.trim();
+  if(nt)s+=`\nPoznamka;${nt.replace(/[\r\n]+/g,' ')}\n`;
+  dl('\ufeff'+s,slug()+'_zameranie.csv','text/csv;charset=utf-8');toast('CSV скачан');
+}
+
+(function initCP(){
+  const d=new Date(),p=n=>String(n).padStart(2,'0');
+  document.getElementById('cpNum').value='CP'+p(d.getDate())+p(d.getMonth()+1)+d.getFullYear();
+})();
+document.getElementById('globalH').addEventListener('input',soft);
+restoreCfg();
+addRoom();
+renderBath();
+</script>
+</body>
+</html>
