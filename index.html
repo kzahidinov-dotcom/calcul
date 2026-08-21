@@ -677,15 +677,13 @@ const MAP=[
   [/^mdf lišty pod 45/,'sokle'],
   [/^demontáž záchoda/,'bathCnt'],
   [/^demontáž umývadiel/,'bathCnt'],
-  [/^demontáž vane do sute/,'bathCnt'],
-  [/^prípojné body vody a kanalizácie/,'points']
+  [/^demontáž vane do sute/,'bathCnt']
 ];
 function val(k,t){
   switch(k){
     case 'wall':return t.wall; case 'floor':return t.floor; case 'obk':return t.obk;
     case 'ost':return t.ost; case 'doors':return t.doors; case 'sokle':return t.sokle;
     case 'wall+strop':return t.wall+t.strop; case 'bathCnt':return t.bathCnt;
-    case 'points':return t.bathCnt*3+t.kitchen*2;
   } return 0;
 }
 function autofill(){
