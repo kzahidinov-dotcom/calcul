@@ -313,7 +313,7 @@ function logCP(t,k){const el=document.getElementById('cpLog');const c=k?' class=
 const freqOf=n=>{const x=norm(n);for(const[p,c]of FREQ)if(x.indexOf(p)===0)return c;return 0;};
 
 function blank(){seq++;return{id:seq,name:'',preset:'',bath:false,open:true,h:null,rects:[{l:'',w:''}],
-  perim:null,doors:1,doorW:0.8,doorH:2.0,windows:0,winW:1.5,winH:1.5,tile:false,obkladH:2.10};}
+  perim:null,doors:1,doorW:0.8,doorH:2.0,windows:0,winW:1.5,winH:1.5,tile:false,obkladW:null,obkladH:2.10};}
 
 function calc(r){
   const H=(r.h!==null&&r.h!=='')?num(r.h):num(document.getElementById('globalH').value);
@@ -323,7 +323,9 @@ function calc(r){
   const perim=(r.perim!==null&&r.perim!=='')?num(r.perim):p0;
   const dA=r.doors*num(r.doorW)*num(r.doorH), wA=r.windows*num(r.winW)*num(r.winH);
   const wallN=Math.max(0,perim*H-dA-wA);
-  const obk=r.tile&&num(r.obkladH)>0?Math.max(0,perim*num(r.obkladH)-dA):0;
+  const obkW=(r.obkladW!==null&&r.obkladW!=='')?num(r.obkladW):null;
+  const obkH=num(r.obkladH);
+  const obk=r.tile&&obkH>0?(obkW!==null?Math.max(0,obkW*obkH):Math.max(0,perim*obkH-dA)):0;
   const sokle=Math.max(0,perim-r.doors*num(r.doorW));
   const ost=r.windows*(2*num(r.winW)+2*num(r.winH));
   return{H,areas,floor,perim,p0,wallN,obk,sokle,ost};
@@ -376,7 +378,7 @@ function roomHTML(r,i){
         <div class="f"><label>В окна</label><input class="w64" type="number" step="0.01" inputmode="decimal" value="${r.winH}" oninput="up(${r.id},'winH',null,null,this.value)"></div>
       </div>
       <label class="chk"><input type="checkbox" ${r.tile?'checked':''} onchange="up(${r.id},'tile',null,null,this.checked)"> Стены — плитка</label>
-      ${r.tile?`<div class="row"><div class="f"><label>Высота обклада, м</label><input class="w92" type="number" step="0.01" inputmode="decimal" value="${r.obkladH}" oninput="up(${r.id},'obkladH',null,null,this.value)"></div></div>`:''}
+      ${r.tile?`<div class="row"><div class="f"><label>Ширина укладки, м</label><input class="w92 nav" type="number" step="0.01" inputmode="decimal" placeholder="${nf(c.perim)}" value="${r.obkladW===null?'':r.obkladW}" oninput="up(${r.id},'obkladW',null,null,this.value)"></div><div class="f"><label>Высота укладки, м</label><input class="w92 nav" type="number" step="0.01" inputmode="decimal" value="${r.obkladH}" oninput="up(${r.id},'obkladH',null,null,this.value)"></div></div>`:''}
       <label class="chk"><input type="checkbox" ${r.bath?'checked':''} onchange="up(${r.id},'bath',null,null,this.checked)"> Санузел — считать в блок Kúpeľňa</label>
       <div class="out">
         <div><b>${nf(c.floor)}</b><span>Пол м²</span></div>
@@ -415,7 +417,7 @@ function renderSummary(){
 function up(id,f,ri,k,v){
   const r=rooms.find(x=>x.id===id); if(!r) return;
   if(f==='rect') r.rects[ri][k]=v;
-  else if(f==='h'||f==='perim') r[f]=(v===''?null:v);
+  else if(f==='h'||f==='perim'||f==='obkladW') r[f]=(v===''?null:v);
   else if(f==='tile'){r.tile=v;renderRooms();return;}
   else if(f==='bath'){r.bath=v;renderRooms();autoBath();renderBath();return;}
   else if(f==='doors'||f==='windows') r[f]=Math.max(0,parseInt(v)||0);
@@ -450,7 +452,7 @@ function collapseAll(){const any=rooms.some(r=>r.open);rooms.forEach(r=>r.open=!
 function addRect(id){rooms.find(x=>x.id===id).rects.push({l:'',w:''});renderRooms();}
 function delRect(id,i){rooms.find(x=>x.id===id).rects.splice(i,1);renderRooms();}
 function preset(id,p){const r=rooms.find(x=>x.id===id),d=PRESETS[p];
-  r.preset=p;if(!r.name)r.name=p;r.obkladH=d.obklad;r.tile=d.obklad>0;r.doors=d.doors;r.bath=d.bath;
+  r.preset=p;if(!r.name)r.name=p;r.obkladH=d.obklad;r.obkladW=null;r.tile=d.obklad>0;r.doors=d.doors;r.bath=d.bath;
   renderRooms();autoBath();renderBath();}
 function bindNav(){const inp=[...document.querySelectorAll('#rooms input.nav, #rooms .rname')];
   inp.forEach((el,i)=>el.addEventListener('keydown',e=>{if(e.key!=='Enter')return;e.preventDefault();
