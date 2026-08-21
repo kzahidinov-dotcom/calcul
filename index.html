@@ -321,7 +321,7 @@ const BATH_DEF=[
   ['Jolly hrana s epoxidovou hranou','bm',60,null],
   ['Osadenie Geberitu','ks',250,'bathCnt'],
   ['Revízne dvierka do kúpeľne s obkladom','ks',50,'bathCnt'],
-  ['Pripojenie vane + silikónovanie','ks',200,'bathCnt'],
+  ['Pripojenie vane + silikónovanie','ks',200,'bathVana'],
   ['Napojenie umývadla + sifón + skrinka + silikónovanie','ks',200,'bathCnt'],
   ['Montáž skrinky navyše do kúpeľne','ks',100,null],
   ['Zavesenie zrkadla','ks',20,'bathCnt'],
@@ -329,8 +329,8 @@ const BATH_DEF=[
   ['Napojenie sprchovej/vaňovej batérie','ks',100,'bathCnt'],
   ['Napojenie umývadlovej batérie','ks',20,'bathCnt'],
   ['Napojenie podomietkovej batérie','ks',50,null],
-  ['Osadenie skla do vane/sprchy','ks',100,null],
-  ['Osadenie sprchového žľabu + murovanie sprchovej vaničky','ks',300,null],
+  ['Osadenie skla do vane/sprchy','ks',100,'bathSklo'],
+  ['Osadenie sprchového žľabu + murovanie sprchovej vaničky','ks',300,'bathZlab'],
   ['Napojenie radiátora v kúpeľni','ks',100,'bathCnt'],
   ['Nika v priečke – vyrezanie otvoru v murive','ks',50,null],
   ['Montáž ventilátora','ks',25,'bathCnt'],
@@ -366,7 +366,7 @@ function getMasonryOptions(){
   return DEFAULT_MASONRY.map(m=>({name:m,row:null}));
 }
 
-function blank(){seq++;return{id:seq,name:'',preset:'',bath:false,open:true,h:null,rects:[{l:'',w:''}],
+function blank(){seq++;return{id:seq,name:'',preset:'',bath:false,bathType:'vana',open:true,h:null,rects:[{l:'',w:''}],
   perim:null,doors:1,doorW:0.8,doorH:2.0,windows:0,winW:1.5,winH:1.5,tile:false,obkladW:null,obkladH:2.10,
   murov:false,murovItem:'',murovL:'',murovH:''};}
 
@@ -391,11 +391,17 @@ function calc(r){
 
 function T(){
   const t={floor:0,wall:0,strop:0,obk:0,sokle:0,ost:0,doors:0,wins:0,
-           bathFloor:0,bathObk:0,bathCnt:0,kitchen:0,kitchenObk:0,livingFloor:0,murovTotal:0,masonry:{}};
+           bathFloor:0,bathObk:0,bathCnt:0,kitchen:0,kitchenObk:0,livingFloor:0,murovTotal:0,masonry:{},
+           bathVana:0,bathKut:0,bathZlab:0,bathSprcha:0,bathSklo:0};
   rooms.forEach(r=>{const c=calc(r);
     t.floor+=c.floor;t.strop+=c.floor;t.wall+=c.wallN;t.obk+=c.obk;
     t.sokle+=c.sokle;t.ost+=c.ost;t.doors+=r.doors;t.wins+=r.windows;
-    if(r.bath){t.bathFloor+=c.floor;t.bathObk+=c.obk;t.bathCnt+=1;}
+    if(r.bath){
+      t.bathFloor+=c.floor;t.bathObk+=c.obk;t.bathCnt+=1;
+      if(!r.bathType||r.bathType==='vana') t.bathVana+=1;
+      else if(r.bathType==='sprch_kut'){t.bathKut+=1;t.bathSprcha+=1;t.bathSklo+=1;}
+      else if(r.bathType==='sprch_zlab'){t.bathZlab+=1;t.bathSprcha+=1;t.bathSklo+=1;}
+    }
     else{t.livingFloor+=c.floor;}
     if(r.preset==='Kuchyňa'||norm(r.name).indexOf('kuch')>=0){
       t.kitchen+=1;
@@ -464,6 +470,18 @@ function roomHTML(r,i){
           </div>
         </div>`:''}
       <label class="chk"><input type="checkbox" ${r.bath?'checked':''} onchange="up(${r.id},'bath',null,null,this.checked)"> Санузел — считать в блок Kúpeľňa</label>
+      ${r.bath?`
+        <div style="background:#F4F2EE;border:1px solid var(--rule);border-radius:8px;padding:8px 10px;margin:7px 0">
+          <div class="f">
+            <label>Тип сантехники / Зона мытья</label>
+            <div class="chips" style="margin:4px 0 0">
+              <button class="chip ${(!r.bathType||r.bathType==='vana')?'on':''}" onclick="up(${r.id},'bathType',null,null,'vana')">🛁 Ванна (Vaňa)</button>
+              <button class="chip ${r.bathType==='sprch_kut'?'on':''}" onclick="up(${r.id},'bathType',null,null,'sprch_kut')">🚿 Душевая кабинка</button>
+              <button class="chip ${r.bathType==='sprch_zlab'?'on':''}" onclick="up(${r.id},'bathType',null,null,'sprch_zlab')">🚿 Душевой трап (Žľab)</button>
+              <button class="chip ${r.bathType==='none'?'on':''}" onclick="up(${r.id},'bathType',null,null,'none')">🚽 Только WC</button>
+            </div>
+          </div>
+        </div>`:''}
       <div class="out">
         <div><b>${nf(c.floor)}</b><span>Пол м²</span></div>
         <div><b>${nf(c.perim)}</b><span>Периметр</span></div>
@@ -541,6 +559,11 @@ function summaryHTML(){
     details.push(`Обвод: ${nf(c.perim)}м`);
     if(c.H!==2.60) details.push(`В: ${c.H}м`);
     if(r.doors||r.windows) details.push(`Проемы: ${r.doors}д/${r.windows}о`);
+    if(r.bath){
+      const bLabels={vana:'🛁 Ванна',sprch_kut:'🚿 Душ. кабина',sprch_zlab:'🚿 Душ. трап',none:'🚽 Только WC'};
+      const bt=r.bathType||'vana';
+      if(bLabels[bt]) details.push(`<span style="color:var(--calc);font-weight:600">${bLabels[bt]}</span>`);
+    }
     if(r.tile&&c.obk>0) details.push(`<span style="color:var(--gold);font-weight:600">Плитка: ${nf(c.obk)} м²${r.obkladW?` (${r.obkladW}×${r.obkladH}м)`:` (h=${r.obkladH}м)`}</span>`);
     if(r.murov&&c.murArea>0) details.push(`<span style="color:#854D0E;font-weight:600">Мур: ${nf(c.murArea)} м² [${esc(r.murovItem||'перегородка')}]</span>`);
 
@@ -604,6 +627,7 @@ function up(id,f,ri,k,v){
   }
   else if(f==='murovItem') r.murovItem=v;
   else if(f==='bath'){r.bath=v;renderRooms();autoBath();renderBath();return;}
+  else if(f==='bathType'){r.bathType=v;renderRooms();autoBath();renderBath();return;}
   else if(f==='doors'||f==='windows') r[f]=Math.max(0,parseInt(v)||0);
   else r[f]=v;
   soft();
@@ -637,6 +661,8 @@ function addRect(id){rooms.find(x=>x.id===id).rects.push({l:'',w:''});renderRoom
 function delRect(id,i){rooms.find(x=>x.id===id).rects.splice(i,1);renderRooms();}
 function preset(id,p){const r=rooms.find(x=>x.id===id),d=PRESETS[p];
   r.preset=p;if(!r.name)r.name=p;r.obkladH=d.obklad;r.obkladW=null;r.tile=d.obklad>0;r.doors=d.doors;r.bath=d.bath;
+  if(p==='Kúpeľňa') r.bathType='vana';
+  else if(p==='WC') r.bathType='none';
   renderRooms();autoBath();renderBath();}
 function bindNav(){const inp=[...document.querySelectorAll('#rooms input.nav, #rooms .rname')];
   inp.forEach((el,i)=>el.addEventListener('keydown',e=>{if(e.key!=='Enter')return;e.preventDefault();
