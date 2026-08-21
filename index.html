@@ -367,7 +367,9 @@ function getMasonryOptions(){
 }
 
 function blank(){seq++;return{id:seq,name:'',preset:'',bath:false,washType:'vana',hasWc:false,hasSink:true,open:true,h:null,rects:[{l:'',w:''}],
-  perim:null,doors:1,doorW:0.8,doorH:2.0,windows:0,winW:1.5,winH:1.5,tile:false,obkladW:null,obkladH:2.10,
+  perim:null,doors:1,doorW:0.8,doorH:2.0,windows:0,winW:1.5,winH:1.5,
+  doorDemo:true,doorDemoCnt:null,doorDemoType:'kov',doorInstall:true,doorInstallCnt:null,
+  tile:false,obkladW:null,obkladH:2.10,
   murov:false,murovItem:'',murovL:'',murovH:''};}
 
 function calc(r){
@@ -392,18 +394,40 @@ function calc(r){
 function T(){
   const t={floor:0,wall:0,strop:0,obk:0,sokle:0,ost:0,doors:0,wins:0,
            bathFloor:0,bathObk:0,bathCnt:0,kitchen:0,kitchenObk:0,livingFloor:0,murovTotal:0,masonry:{},
-           bathVana:0,bathKut:0,bathZlab:0,bathSprcha:0,bathSklo:0,bathWc:0,bathSink:0};
-  rooms.forEach(r=>{const c=calc(r);
-    t.floor+=c.floor;t.strop+=c.floor;t.wall+=c.wallN;t.obk+=c.obk;
-    t.sokle+=c.sokle;t.ost+=c.ost;t.doors+=r.doors;t.wins+=r.windows;
-    if(r.bath){
-      t.bathFloor+=c.floor;t.bathObk+=c.obk;t.bathCnt+=1;
-      const wt=r.washType||(r.bathType==='none'?'none':(r.bathType||'vana'));
+           bathVana:0,bathKut:0,bathZlab:0,bathSprcha:0,bathSklo:0,bathWc:0,bathSink:0,
+           doorDemoKov:0,doorDemoDrev:0,doorInstall:0};
+  rooms.forEach(r=>{
+    const isB = r.bath || r.preset==='Kúpeľňa' || r.preset==='WC';
+    const c=calc(r);
+    t.floor+=c.floor; t.strop+=c.floor; t.wall+=c.wallN; t.obk+=c.obk;
+    t.sokle+=c.sokle; t.ost+=c.ost; t.doors+=r.doors; t.wins+=r.windows;
+
+    if(r.doors>0){
+      if(r.doorDemo!==false){
+        const cnt=(r.doorDemoCnt!==null&&r.doorDemoCnt!==''&&r.doorDemoCnt!==undefined)?num(r.doorDemoCnt):r.doors;
+        if(r.doorDemoType==='drev') t.doorDemoDrev+=cnt;
+        else t.doorDemoKov+=cnt;
+      }
+      if(r.doorInstall!==false){
+        const cnt=(r.doorInstallCnt!==null&&r.doorInstallCnt!==''&&r.doorInstallCnt!==undefined)?num(r.doorInstallCnt):r.doors;
+        t.doorInstall+=cnt;
+      }
+    }
+
+    if(isB){
+      t.bathFloor+=c.floor; t.bathObk+=c.obk; t.bathCnt+=1;
+      const wt=(r.preset==='WC')?'none':(r.washType||'vana');
       if(wt==='vana') t.bathVana+=1;
-      else if(wt==='sprch_kut'){t.bathKut+=1;t.bathSprcha+=1;t.bathSklo+=1;}
-      else if(wt==='sprch_zlab'){t.bathZlab+=1;t.bathSprcha+=1;t.bathSklo+=1;}
-      if(r.hasWc) t.bathWc+=1;
-      if(r.hasSink!==false) t.bathSink+=1;
+      else if(wt==='sprch_kut'||wt==='sprch_zlab'){
+        t.bathKut+=1; t.bathSprcha+=1; t.bathZlab+=1; t.bathSklo+=1;
+      }
+      if(r.preset==='WC'){
+        if(r.hasWc!==false) t.bathWc+=1;
+        if(r.hasSink!==false) t.bathSink+=1;
+      } else {
+        if(r.hasWc) t.bathWc+=1;
+        if(r.hasSink!==false) t.bathSink+=1;
+      }
     }
     else{t.livingFloor+=c.floor;}
     if(r.preset==='Kuchyňa'||norm(r.name).indexOf('kuch')>=0){
@@ -453,6 +477,36 @@ function roomHTML(r,i){
         <div class="f"><label>Ш окна</label><input class="w64" type="number" step="0.01" inputmode="decimal" value="${r.winW}" oninput="up(${r.id},'winW',null,null,this.value)"></div>
         <div class="f"><label>В окна</label><input class="w64" type="number" step="0.01" inputmode="decimal" value="${r.winH}" oninput="up(${r.id},'winH',null,null,this.value)"></div>
       </div>
+      ${r.doors>0?`
+        <div style="background:#FAF9F6;border:1px solid var(--rule);border-radius:8px;padding:8px 10px;margin:6px 0 10px;font-size:12px">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px">
+            <div style="background:#fff;border:1px solid var(--rs);border-radius:6px;padding:6px 8px">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+                <label class="chk" style="padding:0;font-weight:600;margin:0;font-size:12px">
+                  <input type="checkbox" ${r.doorDemo!==false?'checked':''} onchange="up(${r.id},'doorDemo',null,null,this.checked)"> Демонтаж zárubní
+                </label>
+                <div style="display:flex;align-items:center;gap:3px">
+                  <input type="number" min="0" class="w64 nav" style="padding:2px 4px;height:24px;font-size:12px;text-align:center" placeholder="${r.doors}" value="${r.doorDemoCnt===null||r.doorDemoCnt===undefined?'':r.doorDemoCnt}" oninput="up(${r.id},'doorDemoCnt',null,null,this.value)">
+                  <span style="font-size:11px;color:var(--ink-soft)">ks</span>
+                </div>
+              </div>
+              ${r.doorDemo!==false?`
+                <div style="margin-top:6px;display:flex;gap:4px">
+                  <button class="chip ${(!r.doorDemoType||r.doorDemoType==='kov')?'on':''}" style="font-size:11px;padding:2px 6px" onclick="up(${r.id},'doorDemoType',null,null,'kov')">🔩 Металл (Kov)</button>
+                  <button class="chip ${r.doorDemoType==='drev'?'on':''}" style="font-size:11px;padding:2px 6px" onclick="up(${r.id},'doorDemoType',null,null,'drev')">🪵 Дерево (Drev)</button>
+                </div>`:''}
+            </div>
+            <div style="background:#fff;border:1px solid var(--rs);border-radius:6px;padding:6px 8px;display:flex;align-items:center;justify-content:space-between;gap:6px">
+              <label class="chk" style="padding:0;font-weight:600;margin:0;font-size:12px">
+                <input type="checkbox" ${r.doorInstall!==false?'checked':''} onchange="up(${r.id},'doorInstall',null,null,this.checked)"> Монтаж новых дверей
+              </label>
+              <div style="display:flex;align-items:center;gap:3px">
+                <input type="number" min="0" class="w64 nav" style="padding:2px 4px;height:24px;font-size:12px;text-align:center" placeholder="${r.doors}" value="${r.doorInstallCnt===null||r.doorInstallCnt===undefined?'':r.doorInstallCnt}" oninput="up(${r.id},'doorInstallCnt',null,null,this.value)">
+                <span style="font-size:11px;color:var(--ink-soft)">ks</span>
+              </div>
+            </div>
+          </div>
+        </div>`:''}
       <label class="chk"><input type="checkbox" ${r.tile?'checked':''} onchange="up(${r.id},'tile',null,null,this.checked)"> Стены — плитка</label>
       ${r.tile?`<div class="row"><div class="f"><label>Ширина укладки, м</label><input class="w92 nav" type="number" step="0.01" inputmode="decimal" placeholder="${nf(c.perim)}" value="${r.obkladW===null?'':r.obkladW}" oninput="up(${r.id},'obkladW',null,null,this.value)"></div><div class="f"><label>Высота укладки, м</label><input class="w92 nav" type="number" step="0.01" inputmode="decimal" value="${r.obkladH}" oninput="up(${r.id},'obkladH',null,null,this.value)"></div></div>`:''}
       <label class="chk"><input type="checkbox" ${r.murov?'checked':''} onchange="up(${r.id},'murov',null,null,this.checked)"> Стены — мурование / перегородки (Ytong / SDK)</label>
@@ -576,6 +630,14 @@ function summaryHTML(){
     details.push(`Обвод: ${nf(c.perim)}м`);
     if(c.H!==2.60) details.push(`В: ${c.H}м`);
     if(r.doors||r.windows) details.push(`Проемы: ${r.doors}д/${r.windows}о`);
+    if(r.doors>0){
+      if(r.doorDemo===false && r.doorInstall===false) details.push(`<span style="color:var(--ink-soft)">Двери: без замены</span>`);
+      else {
+        const dDemo = r.doorDemo!==false ? `${(r.doorDemoCnt!==null&&r.doorDemoCnt!==undefined&&r.doorDemoCnt!=='')?r.doorDemoCnt:r.doors} dem [${r.doorDemoType==='drev'?'drev':'kov'}]` : 'bez dem.';
+        const dInst = r.doorInstall!==false ? `${(r.doorInstallCnt!==null&&r.doorInstallCnt!==undefined&&r.doorInstallCnt!=='')?r.doorInstallCnt:r.doors} mont.` : 'bez mont.';
+        details.push(`<span style="color:var(--ink-soft)">Двери: ${dDemo}, ${dInst}</span>`);
+      }
+    }
     if(r.bath){
       const wLabels={vana:'🛁 Ванна',sprch_kut:'🚿 Душ. кабина',sprch_zlab:'🚿 Душ. трап'};
       const wt=r.washType||(r.bathType==='none'?'none':(r.bathType||'vana'));
@@ -648,6 +710,8 @@ function up(id,f,ri,k,v){
   else if(f==='bath'){r.bath=v;renderRooms();autoBath();renderBath();return;}
   else if(f==='washType'){r.washType=v;renderRooms();autoBath();renderBath();return;}
   else if(f==='hasWc'||f==='hasSink'){r[f]=v;renderRooms();autoBath();renderBath();return;}
+  else if(f==='doorDemo'||f==='doorInstall'||f==='doorDemoType'){r[f]=v;renderRooms();return;}
+  else if(f==='doorDemoCnt'||f==='doorInstallCnt'){r[f]=(v===''?null:num(v));soft();return;}
   else if(f==='doors'||f==='windows') r[f]=Math.max(0,parseInt(v)||0);
   else r[f]=v;
   soft();
@@ -681,6 +745,7 @@ function addRect(id){rooms.find(x=>x.id===id).rects.push({l:'',w:''});renderRoom
 function delRect(id,i){rooms.find(x=>x.id===id).rects.splice(i,1);renderRooms();}
 function preset(id,p){const r=rooms.find(x=>x.id===id),d=PRESETS[p];
   r.preset=p;if(!r.name)r.name=p;r.obkladH=d.obklad;r.obkladW=null;r.tile=d.obklad>0;r.doors=d.doors;r.bath=d.bath;
+  r.doorDemo=(d.doors>0);r.doorInstall=(d.doors>0);r.doorDemoCnt=null;r.doorInstallCnt=null;
   if(p==='Kúpeľňa'){r.washType='vana';r.hasWc=false;r.hasSink=true;}
   else if(p==='WC'){r.washType='none';r.hasWc=true;r.hasSink=true;}
   renderRooms();autoBath();renderBath();}
@@ -716,8 +781,9 @@ const MAP=[
   [/obklad.*kuchy|zástena/,'kitchenObk'],
   [/obklad.*kúpeľ|dlažb.*kúpeľ/,'bathTile'],
   [/^montáž obkladov vnútor/,'obk'],
-  [/^vybúranie kovových dverových zárubní a demontáž dverného krídla$/,'doors'],
-  [/^montáž drevených dverových zárubní/,'doors'],
+  [/^vybúranie kovových dverových zárubní/,'doorDemoKov'],
+  [/demontáž drevených dverových zárubní|demontáž drevených zárubní/,'doorDemoDrev'],
+  [/^montáž drevených dverových zárubní|montáž obložkových zárubní/,'doorInstall'],
   [/^ostenie okien/,'ost'],
   [/elektroin[šs]tal/,'floor'],
   [/kompletn[áa] elektroin[šs]tal/,'floor'],
@@ -747,6 +813,9 @@ function val(k,t){
     case 'kitchenObk':return t.kitchenObk;
     case 'ost':return t.ost;
     case 'doors':return t.doors;
+    case 'doorDemoKov':return t.doorDemoKov;
+    case 'doorDemoDrev':return t.doorDemoDrev;
+    case 'doorInstall':return t.doorInstall;
     case 'sokle':return t.sokle;
     case 'wall+strop':return t.wall+t.strop;
     case 'bathCnt':return t.bathCnt;
