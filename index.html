@@ -371,7 +371,7 @@ function blank(){seq++;return{id:seq,name:'',preset:'',bath:false,washType:'vana
   perim:null,doors:1,doorW:0.8,doorH:2.0,windows:0,winW:1.5,winH:1.5,
   doorDemo:true,doorDemoCnt:null,doorDemoType:'kov',doorInstall:true,doorInstallCnt:null,
   floorDemo:'',floorInstall:'',
-  tile:false,obkladW:null,obkladH:2.10,
+  tile:false,tiles:[{l:'',h:''}],tileDemo:true,tileInstall:true,obkladW:null,obkladH:2.10,
   murov:false,murovItem:'',murovL:'',murovH:''};}
 
 function calc(r){
@@ -382,15 +382,26 @@ function calc(r){
   const perim=(r.perim!==null&&r.perim!=='')?num(r.perim):p0;
   const dA=r.doors*num(r.doorW)*num(r.doorH), wA=r.windows*num(r.winW)*num(r.winH);
   const wallN=Math.max(0,perim*H-dA-wA);
-  const obkW=(r.obkladW!==null&&r.obkladW!=='')?num(r.obkladW):null;
-  const obkH=num(r.obkladH);
-  const obk=r.tile&&obkH>0?(obkW!==null?Math.max(0,obkW*obkH):Math.max(0,perim*obkH-dA)):0;
+
+  let obk=0, tileAreas=[];
+  if(r.tile){
+    if(r.tiles && r.tiles.length){
+      const defH = r.preset==='Kuchyňa' ? 0.60 : (num(r.obkladH)||2.10);
+      tileAreas = r.tiles.map(t => num(t.l) * (t.h!==''&&t.h!==null ? num(t.h) : defH));
+      obk = tileAreas.reduce((a,b)=>a+b, 0);
+    } else if(r.obkladW!==null && r.obkladW!==''){
+      obk = Math.max(0, num(r.obkladW) * num(r.obkladH));
+    } else {
+      obk = Math.max(0, perim * num(r.obkladH) - dA);
+    }
+  }
+
   const sokle=Math.max(0,perim-r.doors*num(r.doorW));
   const ost=r.windows*(2*num(r.winW)+2*num(r.winH));
   const murL=(r.murov&&r.murovL!==''&&r.murovL!==null)?num(r.murovL):0;
   const murH=(r.murov&&r.murovH!==''&&r.murovH!==null)?num(r.murovH):(r.murov?H:0);
   const murArea=r.murov?Math.round(murL*murH*100)/100:0;
-  return{H,areas,floor,perim,p0,wallN,obk,sokle,ost,murL,murH,murArea};
+  return{H,areas,floor,perim,p0,wallN,obk,tileAreas,sokle,ost,murL,murH,murArea};
 }
 
 function T(){
@@ -399,12 +410,21 @@ function T(){
            bathVana:0,bathKut:0,bathZlab:0,bathSprcha:0,bathSklo:0,bathWc:0,bathSink:0,
            doorDemoKov:0,doorDemoDrev:0,doorInstall:0,
            floorDemo_parket:0,floorDemo_laminat:0,floorDemo_linoleum:0,floorDemo_dlazba:0,
-           floorInstall_vinyl:0,floorInstall_laminat:0,floorInstall_dlazba:0,floorInstall_parket:0};
+           floorInstall_vinyl:0,floorInstall_laminat:0,floorInstall_dlazba:0,floorInstall_parket:0,
+           tileDemo_total:0,tileInstall_kuch:0,tileInstall_gen:0};
   rooms.forEach(r=>{
     const isB = r.bath || r.preset==='Kúpeľňa' || r.preset==='WC';
     const c=calc(r);
     t.floor+=c.floor; t.strop+=c.floor; t.wall+=c.wallN; t.obk+=c.obk;
     t.sokle+=c.sokle; t.ost+=c.ost; t.doors+=r.doors; t.wins+=r.windows;
+
+    if(r.tile && c.obk > 0){
+      if(r.tileDemo!==false) t.tileDemo_total += c.obk;
+      if(r.tileInstall!==false){
+        if(r.preset==='Kuchyňa'||norm(r.name).indexOf('kuch')>=0) t.tileInstall_kuch += c.obk;
+        else t.tileInstall_gen += c.obk;
+      }
+    }
 
     if(r.floorDemo){
       if(r.floorDemo==='parket') t.floorDemo_parket+=c.floor;
@@ -546,8 +566,32 @@ function roomHTML(r,i){
           </div>
         </div>
       </div>
-      <label class="chk"><input type="checkbox" ${r.tile?'checked':''} onchange="up(${r.id},'tile',null,null,this.checked)"> Стены — плитка</label>
-      ${r.tile?`<div class="row"><div class="f"><label>Ширина укладки, м</label><input class="w92 nav" type="number" step="0.01" inputmode="decimal" placeholder="${nf(c.perim)}" value="${r.obkladW===null?'':r.obkladW}" oninput="up(${r.id},'obkladW',null,null,this.value)"></div><div class="f"><label>Высота укладки, м</label><input class="w92 nav" type="number" step="0.01" inputmode="decimal" value="${r.obkladH}" oninput="up(${r.id},'obkladH',null,null,this.value)"></div></div>`:''}
+      <label class="chk"><input type="checkbox" ${r.tile?'checked':''} onchange="up(${r.id},'tile',null,null,this.checked)"> Стены — плитка / фартук</label>
+      ${r.tile?`
+        <div style="background:#F7F5F0;border:1px solid var(--rule);border-radius:8px;padding:9px 11px;margin:7px 0">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span style="font-weight:700;font-size:12px;color:var(--ink)">🧱 Стены с плиткой / фартуком (Итого: ${nf(c.obk)} м²)</span>
+            <button class="chip" style="font-size:11px;padding:2px 7px" onclick="setPerimTile(${r.id})">📐 По периметру</button>
+          </div>
+          ${(r.tiles&&r.tiles.length?r.tiles:[{l:'',h:''}]).map((t,tj)=>`
+            <div class="rect" style="margin-bottom:6px">
+              <div class="f"><label>Стена ${tj+1}: Длина, м</label><input class="w78 nav" type="number" step="0.01" inputmode="decimal" placeholder="напр. 2.4" value="${t.l}" oninput="upTile(${r.id},${tj},'l',this.value)"></div>
+              <div class="tm">×</div>
+              <div class="f"><label>Высота, м</label><input class="w78 nav" type="number" step="0.01" inputmode="decimal" placeholder="${r.preset==='Kuchyňa'?'0.60':(r.obkladH||'2.10')}" value="${t.h}" oninput="upTile(${r.id},${tj},'h',this.value)"></div>
+              <div class="ra">${nf(c.tileAreas&&c.tileAreas[tj]!==undefined?c.tileAreas[tj]:(num(t.l)*(num(t.h)||(r.preset==='Kuchyňa'?0.6:num(r.obkladH)||2.1))))} м²</div>
+              ${(r.tiles&&r.tiles.length>1)?`<button class="ib del" onclick="delTile(${r.id},${tj})">−</button>`:''}
+            </div>
+          `).join('')}
+          <button class="add" style="margin:4px 0 8px" onclick="addTile(${r.id})">+ Добавить стену / отрезок фартука</button>
+          <div style="border-top:1px solid #E2DFD7;padding-top:8px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px">
+            <label class="chk" style="padding:0;font-size:12px;font-weight:600;margin:0">
+              <input type="checkbox" ${r.tileDemo!==false?'checked':''} onchange="up(${r.id},'tileDemo',null,null,this.checked)"> 🔴 Демонтаж плитки (${nf(c.obk)} м²)
+            </label>
+            <label class="chk" style="padding:0;font-size:12px;font-weight:600;margin:0">
+              <input type="checkbox" ${r.tileInstall!==false?'checked':''} onchange="up(${r.id},'tileInstall',null,null,this.checked)"> 🟢 Монтаж плитки (${nf(c.obk)} м²)
+            </label>
+          </div>
+        </div>`:''}
       <label class="chk"><input type="checkbox" ${r.murov?'checked':''} onchange="up(${r.id},'murov',null,null,this.checked)"> Стены — мурование / перегородки (Ytong / SDK)</label>
       ${r.murov?`
         <div style="background:#F7F5F0;border:1px solid var(--rule);border-radius:8px;padding:9px;margin:7px 0">
@@ -740,7 +784,13 @@ function up(id,f,ri,k,v){
   const r=rooms.find(x=>x.id===id); if(!r) return;
   if(f==='rect') r.rects[ri][k]=v;
   else if(f==='h'||f==='perim'||f==='obkladW'||f==='murovL'||f==='murovH') r[f]=(v===''?null:v);
-  else if(f==='tile'){r.tile=v;renderRooms();return;}
+  else if(f==='tile'||f==='tileDemo'||f==='tileInstall'){
+    r[f]=v;
+    if(f==='tile'&&v&&(!r.tiles||!r.tiles.length)){
+      r.tiles=[{l:'',h:r.preset==='Kuchyňa'?'0.60':(r.obkladH||'2.10')}];
+    }
+    renderRooms();autofill();refresh();return;
+  }
   else if(f==='murov'){
     r.murov=v;
     if(v&&!r.murovItem){
@@ -759,6 +809,32 @@ function up(id,f,ri,k,v){
   else if(f==='doors'||f==='windows') r[f]=Math.max(0,parseInt(v)||0);
   else r[f]=v;
   soft();
+}
+
+function addTile(id){
+  const r=rooms.find(x=>x.id===id); if(!r) return;
+  if(!r.tiles||!r.tiles.length) r.tiles=[{l:'',h:r.preset==='Kuchyňa'?'0.60':(r.obkladH||'2.10')}];
+  const defH = r.preset==='Kuchyňa' ? '0.60' : (r.obkladH||'2.10');
+  r.tiles.push({l:'',h:defH});
+  renderRooms();
+}
+function delTile(id,j){
+  const r=rooms.find(x=>x.id===id); if(!r) return;
+  if(r.tiles&&r.tiles.length>1) r.tiles.splice(j,1);
+  renderRooms();
+}
+function upTile(id,j,k,v){
+  const r=rooms.find(x=>x.id===id); if(!r) return;
+  if(!r.tiles||!r.tiles.length) r.tiles=[{l:'',h:''}];
+  if(r.tiles[j]) r.tiles[j][k]=v;
+  soft();
+}
+function setPerimTile(id){
+  const r=rooms.find(x=>x.id===id); if(!r) return;
+  const c=calc(r);
+  const defH = r.preset==='Kuchyňa' ? '0.60' : (r.obkladH||'2.10');
+  r.tiles=[{l:c.perim, h:defH}];
+  renderRooms();
 }
 
 function soft(){
@@ -790,6 +866,7 @@ function delRect(id,i){rooms.find(x=>x.id===id).rects.splice(i,1);renderRooms();
 function preset(id,p){const r=rooms.find(x=>x.id===id),d=PRESETS[p];
   r.preset=p;if(!r.name)r.name=p;r.obkladH=d.obklad;r.obkladW=null;r.tile=d.obklad>0;r.doors=d.doors;r.bath=d.bath;
   r.doorDemo=(d.doors>0);r.doorInstall=(d.doors>0);r.doorDemoCnt=null;r.doorInstallCnt=null;
+  if(d.obklad>0) r.tiles=[{l:'',h:d.obklad}];
   if(p==='Kúpeľňa'){r.washType='vana';r.hasWc=false;r.hasSink=true;r.floorDemo='dlazba';r.floorInstall='dlazba';}
   else if(p==='WC'){r.washType='none';r.hasWc=true;r.hasSink=true;r.floorDemo='dlazba';r.floorInstall='dlazba';}
   renderRooms();autoBath();renderBath();}
@@ -812,7 +889,7 @@ function go(n){
   window.scrollTo(0,0);
 }
 
-/* ---- автозаполнение только полов, выбранных на замере ---- */
+/* ---- автозаполнение полов и фартуков/плитки, выбранных на замере ---- */
 const MAP=[
   [/demontáž podláh drevených|demontáž parkiet|demontáž drevenej/,'floorDemo_parket'],
   [/demontáž plávajúcej|demontaz plavajucej/,'floorDemo_laminat'],
@@ -821,7 +898,10 @@ const MAP=[
   [/montáž vinylovej|pokládka vinylovej/,'floorInstall_vinyl'],
   [/pokládka plávajúcej|montáž plávajúcej/,'floorInstall_laminat'],
   [/^montáž dlažby|montáž keramickej dlažby|pokládka dlažby/,'floorInstall_dlazba'],
-  [/montáž drevených parkiet|pokládka drevených parkiet/,'floorInstall_parket']
+  [/montáž drevených parkiet|pokládka drevených parkiet/,'floorInstall_parket'],
+  [/búranie obkladov|búranie keramických obkladov|osekanie obkladov/,'tileDemo_total'],
+  [/obklad.*kuchy|zástena/,'tileInstall_kuch'],
+  [/^montáž obkladov vnútor/,'tileInstall_gen']
 ];
 function val(k,t){
   switch(k){
@@ -833,6 +913,9 @@ function val(k,t){
     case 'floorInstall_laminat':return t.floorInstall_laminat;
     case 'floorInstall_dlazba':return t.floorInstall_dlazba;
     case 'floorInstall_parket':return t.floorInstall_parket;
+    case 'tileDemo_total':return t.tileDemo_total;
+    case 'tileInstall_kuch':return t.tileInstall_kuch;
+    case 'tileInstall_gen':return t.tileInstall_gen;
   } return 0;
 }
 function autofill(){
