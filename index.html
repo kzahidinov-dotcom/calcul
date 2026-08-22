@@ -384,7 +384,6 @@ function calc(r){
   const p0=2*(num(r.rects[0].l)+num(r.rects[0].w));
   const perim=(r.perim!==null&&r.perim!=='')?num(r.perim):p0;
   const dA=r.doors*num(r.doorW)*num(r.doorH), wA=r.windows*num(r.winW)*num(r.winH);
-  const wallN=Math.max(0,perim*H-dA-wA);
 
   let obk=0, tileAreas=[];
   if(r.tile){
@@ -399,6 +398,7 @@ function calc(r){
     }
   }
 
+  const wallN=Math.max(0,perim*H-dA-wA-obk);
   const sokle=Math.max(0,perim-r.doors*num(r.doorW));
   const ost=r.windows*(2*num(r.winW)+2*num(r.winH));
   const murL=(r.murov&&r.murovL!==''&&r.murovL!==null)?num(r.murovL):0;
