@@ -316,25 +316,25 @@ const FREQ=[
 ];
 
 const BATH_DEF=[
-  ['Montáž dlažby/obkladov + škárovanie','m2',55,'bathTile'],
+  ['Montáž dlažby/obkladov + škárovanie','m2',55,null],
   ['Hydroizolácia – 2 vrstvy + hydroizolačné pásky','m2',25,null],
-  ['Vyrovnanie stien pred pokládkou obkladov','m2',10,'bathObk'],
+  ['Vyrovnanie stien pred pokládkou obkladov','m2',10,null],
   ['Jolly hrana s epoxidovou hranou','bm',60,null],
-  ['Osadenie Geberitu','ks',250,'bathWc'],
+  ['Osadenie Geberitu','ks',250,null],
   ['Revízne dvierka do kúpeľne s obkladom','ks',50,null],
   ['Pripojenie vane + silikónovanie','ks',200,null],
-  ['Napojenie umývadla + sifón + skrinka + silikónovanie','ks',200,'bathSink'],
+  ['Napojenie umývadla + sifón + skrinka + silikónovanie','ks',200,null],
   ['Montáž skrinky navyše do kúpeľne','ks',100,null],
-  ['Zavesenie zrkadla','ks',20,'bathCnt'],
+  ['Zavesenie zrkadla','ks',20,null],
   ['Napojenie práčky','ks',20,null],
-  ['Napojenie sprchovej/vaňovej batérie','ks',100,'bathCnt'],
-  ['Napojenie umývadlovej batérie','ks',20,'bathSink'],
+  ['Napojenie sprchovej/vaňovej batérie','ks',100,null],
+  ['Napojenie umývadlovej batérie','ks',20,null],
   ['Napojenie podomietkovej batérie','ks',50,null],
-  ['Osadenie skla do vane/sprchy','ks',100,'bathSklo'],
-  ['Osadenie sprchového žľabu + murovanie sprchovej vaničky','ks',300,'bathZlab'],
+  ['Osadenie skla do vane/sprchy','ks',100,null],
+  ['Osadenie sprchového žľabu + murovanie sprchovej vaničky','ks',300,null],
   ['Napojenie radiátora в kúpeľni','ks',100,null],
   ['Nika v priečke – vyrezanie otvoru v murive','ks',50,null],
-  ['Montáž ventilátora','ks',25,'bathCnt'],
+  ['Montáž ventilátora','ks',25,null],
   ['Napojenie bidetovej súpravy + osadenie','ks',100,null]
 ];
 let bath=BATH_DEF.map(b=>({name:b[0],mj:b[1],price:b[2],src:b[3],qty:0,on:false,man:false}));
@@ -769,113 +769,11 @@ function go(n){
   window.scrollTo(0,0);
 }
 
-/* ---- автозаполнение позиций CP ---- */
-const MAP=[
-  [/^odstranenie omietky/,'wall'],
-  [/^odstranenie malieb/,'wall+strop'],
-  [/stierkovanie/,'wall'],
-  [/sieťkovanie|sietkovanie/,'wall'],
-  [/podh[ľl]ad sdk|sdk podh[ľl]ad/,'strop'],
-  [/penetr|príprava vnútorného podkladu|podklad.*weber|h[ĺl]bkov.*penetr/,'wall+strop'],
-  [/maľb|malb|maľov|malov|maliarsk/,'wall+strop'],
-  [/^sadrova omietka/,'wall'],
-  [/obklad.*kuchy|zástena/,'kitchenObk'],
-  [/obklad.*kúpeľ|dlažb.*kúpeľ/,'bathTile'],
-  [/^montáž obkladov vnútor/,'obk'],
-  [/^ostenie okien/,'ost'],
-  [/elektroin[šs]tal/,'floor'],
-  [/kompletn[áa] elektroin[šs]tal/,'floor'],
-  [/elektromont[áa][žz]/,'floor'],
-  [/^demontáž \+ montáž \+ hrubý materiál/,'floor'],
-  [/búranie dlažieb|búranie keramickej dlažby/,'floor'],
-  [/demontáž podláh drevených|demontáž parkiet|demontáž drevenej/,'floor'],
-  [/odstránenie linolea|odstranenie linolea|odstránenie pvc|odstranenie pvc/,'floor'],
-  [/demontáž plávajúcej|demontaz plavajucej/,'floor'],
-  [/montáž vinylovej|pokládka plávajúcej|pokládka vinylovej|pokládka podlahy/,'floor'],
-  [/osadenie geberit|montáž geberit|podomietkov.*modul|geberit/,'bathWc'],
-  [/^demontáž záchoda/,'bathWc'],
-  [/^demontáž umývadiel/,'bathSink'],
-  [/^demontáž vane do sute/,'bathVana']
-];
-function val(k,t){
-  switch(k){
-    case 'wall':return t.wall;
-    case 'strop':return t.strop;
-    case 'floor':return t.floor;
-    case 'livingFloor':return t.livingFloor;
-    case 'bathFloor':return t.bathFloor;
-    case 'obk':return t.obk;
-    case 'bathTile':return t.bathTile;
-    case 'kitchenObk':return t.kitchenObk;
-    case 'ost':return t.ost;
-    case 'doors':return t.doors;
-    case 'doorDemoKov':return t.doorDemoKov;
-    case 'doorDemoDrev':return t.doorDemoDrev;
-    case 'doorInstall':return t.doorInstall;
-    case 'sokle':return t.sokle;
-    case 'wall+strop':return t.wall+t.strop;
-    case 'bathCnt':return t.bathCnt;
-    case 'bathWc':return t.bathWc;
-    case 'bathVana':return t.bathVana;
-    case 'bathSink':return t.bathSink;
-    case 'bathZlab':return t.bathZlab;
-  } return 0;
-}
-function autofill(){
-  if(!cpLoaded)return; const t=T();
-  cpItems.forEach(it=>{
-    if(it.section||man[it.row])return;
-    const n=norm(it.name);
-    for(const[re,k]of MAP){
-      if(re.test(n)){
-        const v=val(k,t);
-        if(v>0){qty[it.row]=Math.round(v*100)/100;if(sel[it.row]===undefined)sel[it.row]=true;}
-        else delete qty[it.row];
-        return;
-      }
-    }
-  });
-  if(t.masonry){
-    Object.keys(t.masonry).forEach(mKey=>{
-      const totalM=Math.round(t.masonry[mKey]*100)/100;
-      if(totalM<=0)return;
-      const it=cpItems.find(x=>!x.section&&(String(x.row)===String(mKey)||norm(x.name)===norm(mKey)||norm(x.name).indexOf(norm(mKey))>=0||norm(mKey).indexOf(norm(x.name))>=0));
-      if(it&&!man[it.row]){
-        qty[it.row]=totalM;
-        if(sel[it.row]===undefined)sel[it.row]=true;
-      }
-    });
-  }
-  calcSkladkaOdpadu();
-}
-
-function calcSkladkaOdpadu(){
-  if(!cpLoaded||!cpItems.length)return;
-  const isDemoRe=/búranie|buranie|demontáž|demontaz|odstránenie|odstranenie|vybúranie|vyburanie|osekanie|otlčenie/i;
-  const isSkladkaRe=/skládka odpadu|skladka odpadu|poplatok za skládku/i;
-  let demoSum=0;
-  cpItems.forEach(it=>{
-    if(it.section||!sel[it.row])return;
-    const n=norm(it.name);
-    if(isDemoRe.test(n)&&!isSkladkaRe.test(n)){
-      const q=qty[it.row]||0;
-      const p=it.price||0;
-      demoSum+=q*p;
-    }
-  });
-  const skladkaItem=cpItems.find(it=>!it.section&&isSkladkaRe.test(norm(it.name)));
-  if(skladkaItem&&!man[skladkaItem.row]){
-    if(demoSum>0){
-      const skladkaTotal=Math.round(demoSum*1.05*100)/100;
-      const price=skladkaItem.price>0?skladkaItem.price:1.0;
-      qty[skladkaItem.row]=Math.round((skladkaTotal/price)*100)/100;
-      sel[skladkaItem.row]=true;
-    } else {
-      delete qty[skladkaItem.row];
-      sel[skladkaItem.row]=false;
-    }
-  }
-}
+/* ---- автозаполнение полностью отключено (ручной режим) ---- */
+const MAP=[];
+function val(k,t){return 0;}
+function autofill(){}
+function calcSkladkaOdpadu(){}
 
 function renderCP(){
   if(!cpLoaded)return;
@@ -883,7 +781,7 @@ function renderCP(){
     if(it.section)return `<tr class="sec"><td colspan="6">${esc(it.name)}</td></tr>`;
     const q=qty[it.row]||0,on=!!sel[it.row],tot=q*(it.price||0),fr=freqOf(it.name);
     return `<tr class="${on?'':'off'}">
-      <td class="s"><input type="checkbox" ${on?'checked':''} onchange="sel[${it.row}]=this.checked;calcSkladkaOdpadu();refresh();renderCP()"></td>
+      <td class="s"><input type="checkbox" ${on?'checked':''} onchange="sel[${it.row}]=this.checked;refresh();renderCP()"></td>
       <td>${esc(it.name)}${fr?`<span class="star" title="заполнено в ${fr} из 3 смет">${'★'.repeat(fr-1)}</span>`:''}</td>
       <td class="mj">${esc(it.mj||'')}</td>
       <td class="q"><input type="number" step="0.01" inputmode="decimal" class="${man[it.row]?'man':(q?'auto':'')}" value="${q?q:''}" oninput="setQ(${it.row},this.value)"></td>
@@ -899,7 +797,7 @@ function renderCP(){
 function setQ(row,v){
   qty[row]=num(v); man[row]=true;
   if(num(v)>0&&sel[row]===undefined)sel[row]=true;
-  calcSkladkaOdpadu(); refresh(); updTotals();
+  refresh(); updTotals();
 }
 function updTotals(){
   const tb=document.querySelector('#cpTable tbody');if(!tb)return;
@@ -909,16 +807,8 @@ function updTotals(){
     tr.querySelector('td.t').textContent=q*price?eur(q*price):'';});
 }
 
-/* ---- ванная ---- */
-function autoBath(){
-  const t=T();
-  bath.forEach(b=>{
-    if(b.man||!b.src)return;
-    const v=t[b.src]||0;
-    if(v>0){b.qty=Math.round(v*100)/100;b.on=true;}
-    else if(!b.man){b.qty=0;b.on=false;}
-  });
-}
+/* ---- ванная (ручной режим) ---- */
+function autoBath(){}
 function renderBath(){
   document.getElementById('bathTable').innerHTML=bath.map((b,i)=>`
     <tr class="${b.on?'':'off'}">
