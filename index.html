@@ -1014,13 +1014,13 @@ function renderCP(){
   if(!cpLoaded)return;
   const rows=cpItems.map(it=>{
     if(it.section)return `<tr class="sec"><td colspan="6">${esc(it.name)}</td></tr>`;
-    const q=qty[it.row]||0,on=!!sel[it.row],tot=q*(it.price||0),fr=freqOf(it.name);
+    const q=qty[it.row]||0,on=!!sel[it.row],p=it.price!==undefined?it.price:0,tot=q*p,fr=freqOf(it.name);
     return `<tr class="${on?'':'off'}">
       <td class="s"><input type="checkbox" ${on?'checked':''} onchange="sel[${it.row}]=this.checked;refresh();renderCP()"></td>
       <td>${esc(it.name)}${fr?`<span class="star" title="заполнено в ${fr} из 3 смет">${'★'.repeat(fr-1)}</span>`:''}</td>
       <td class="mj">${esc(it.mj||'')}</td>
       <td class="q"><input type="number" step="0.01" inputmode="decimal" class="${man[it.row]?'man':(q?'auto':'')}" value="${q?q:''}" oninput="setQ(${it.row},this.value)"></td>
-      <td class="p">${it.price?nf(it.price):'—'}</td>
+      <td class="p"><input type="number" step="0.01" inputmode="decimal" class="w64" style="text-align:right;padding:2px 4px;height:24px;font-size:12px" value="${p!==undefined&&p!==null?p:''}" oninput="setP(${it.row},this.value)"></td>
       <td class="t">${tot?eur(tot):''}</td></tr>`;
   }).join('');
   document.getElementById('cpTable').innerHTML=
@@ -1034,11 +1034,17 @@ function setQ(row,v){
   if(num(v)>0&&sel[row]===undefined)sel[row]=true;
   refresh(); updTotals();
 }
+function setP(row,v){
+  const it=cpItems.find(x=>x.row===row);
+  if(it){ it.price = (v===''?0:num(v)); }
+  refresh(); updTotals();
+}
 function updTotals(){
   const tb=document.querySelector('#cpTable tbody');if(!tb)return;
   [...tb.querySelectorAll('tr')].forEach(tr=>{
-    const inp=tr.querySelector('td.q input');if(!inp)return;
-    const price=num(tr.querySelector('td.p').textContent),q=num(inp.value);
+    const qInp=tr.querySelector('td.q input'), pInp=tr.querySelector('td.p input');
+    if(!qInp||!pInp)return;
+    const price=num(pInp.value),q=num(qInp.value);
     tr.querySelector('td.t').textContent=q*price?eur(q*price):'';});
 }
 
@@ -1061,7 +1067,7 @@ function bathSet(i,k,v){
 }
 const bathSum=()=>bath.filter(b=>b.on).reduce((a,b)=>a+b.qty*b.price,0);
 
-function cpSum(){return cpItems.reduce((a,it)=>it.section||!sel[it.row]?a:a+(qty[it.row]||0)*(it.price||0),0);}
+function cpSum(){return cpItems.reduce((a,it)=>it.section||!sel[it.row]?a:a+(qty[it.row]||0)*(num(it.price)||0),0);}
 function refresh(){
   const t=T(),c=cpSum(),b=bathSum(),m5=b*0.05,net=c+b+m5;
   document.getElementById('mCp').textContent=eur(c);
@@ -1104,7 +1110,12 @@ function sendCP(){
   if(!cpLoaded){logCP('Сначала загрузи позиции из CP','r');return;}
   saveCfg();
   const items=cpItems.filter(it=>!it.section&&sel[it.row]&&(qty[it.row]||0)>0)
-    .map(it=>({row:it.row,name:it.name,qty:Math.round(qty[it.row]*100)/100}));
+    .map(it=>({
+      row:it.row,
+      name:it.name,
+      qty:Math.round(qty[it.row]*100)/100,
+      price:it.price!==undefined?Math.round(num(it.price)*100)/100:undefined
+    }));
   const b=bathSum(), bs=b>0?Math.round(b*1.05*100)/100:null;
   const cpn=document.getElementById('cpNum').value.trim()||null;
   const note=document.getElementById('noteTxt').value.trim()||null;
@@ -1125,9 +1136,11 @@ function dl(c,n,t){const b=new Blob([c],{type:t}),u=URL.createObjectURL(b),a=doc
 const slug=()=>(document.getElementById('objName').value||'objekt').trim().replace(/[^\wÀ-ſа-яА-Я -]/g,'').replace(/\s+/g,'_').slice(0,40);
 
 function saveJSON(){
+  const customP={};
+  cpItems.forEach(it=>{if(it.price!==undefined)customP[it.row]=it.price;});
   dl(JSON.stringify({objekt:document.getElementById('objName').value,cpNum:document.getElementById('cpNum').value,
     vyska:document.getElementById('globalH').value,cpUrl:cfg().url,cpToken:cfg().token,
-    note:document.getElementById('noteTxt').value,rooms,sel,qty,man,bath},null,2),slug()+'_zameranie.json','application/json');
+    note:document.getElementById('noteTxt').value,rooms,sel,qty,man,prices:customP,bath},null,2),slug()+'_zameranie.json','application/json');
   toast('Сохранено');
 }
 function loadJSON(e){
@@ -1141,7 +1154,13 @@ function loadJSON(e){
     if(d.cpToken)document.getElementById('cpToken').value=d.cpToken;
     rooms=(d.rooms||[]).map(x=>Object.assign(blank(),x,{id:++seq}));
     sel=d.sel||{};qty=d.qty||{};man=d.man||{};if(d.bath)bath=d.bath;
-    renderRooms();renderBath();toast('Открыто');
+    if(d.prices&&cpItems.length){
+      Object.keys(d.prices).forEach(row=>{
+        const it=cpItems.find(x=>String(x.row)===String(row));
+        if(it) it.price=d.prices[row];
+      });
+    }
+    renderRooms();renderCP();renderBath();refresh();toast('Открыто');
   }catch(err){toast('Файл не читается');}};
   r.readAsText(f);e.target.value='';
 }
