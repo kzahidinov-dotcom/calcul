@@ -370,6 +370,7 @@ function getMasonryOptions(){
 function blank(){seq++;return{id:seq,name:'',preset:'',bath:false,washType:'vana',hasWc:false,hasSink:true,open:true,h:null,rects:[{l:'',w:''}],
   perim:null,doors:1,doorW:0.8,doorH:2.0,windows:0,winW:1.5,winH:1.5,
   doorDemo:true,doorDemoCnt:null,doorDemoType:'kov',doorInstall:true,doorInstallCnt:null,
+  floorDemo:'',floorInstall:'',
   tile:false,obkladW:null,obkladH:2.10,
   murov:false,murovItem:'',murovL:'',murovH:''};}
 
@@ -396,12 +397,27 @@ function T(){
   const t={floor:0,wall:0,strop:0,obk:0,sokle:0,ost:0,doors:0,wins:0,
            bathFloor:0,bathObk:0,bathCnt:0,kitchen:0,kitchenObk:0,livingFloor:0,murovTotal:0,masonry:{},
            bathVana:0,bathKut:0,bathZlab:0,bathSprcha:0,bathSklo:0,bathWc:0,bathSink:0,
-           doorDemoKov:0,doorDemoDrev:0,doorInstall:0};
+           doorDemoKov:0,doorDemoDrev:0,doorInstall:0,
+           floorDemo_parket:0,floorDemo_laminat:0,floorDemo_linoleum:0,floorDemo_dlazba:0,
+           floorInstall_vinyl:0,floorInstall_laminat:0,floorInstall_dlazba:0,floorInstall_parket:0};
   rooms.forEach(r=>{
     const isB = r.bath || r.preset==='Kúpeľňa' || r.preset==='WC';
     const c=calc(r);
     t.floor+=c.floor; t.strop+=c.floor; t.wall+=c.wallN; t.obk+=c.obk;
     t.sokle+=c.sokle; t.ost+=c.ost; t.doors+=r.doors; t.wins+=r.windows;
+
+    if(r.floorDemo){
+      if(r.floorDemo==='parket') t.floorDemo_parket+=c.floor;
+      else if(r.floorDemo==='laminat') t.floorDemo_laminat+=c.floor;
+      else if(r.floorDemo==='linoleum') t.floorDemo_linoleum+=c.floor;
+      else if(r.floorDemo==='dlazba') t.floorDemo_dlazba+=c.floor;
+    }
+    if(r.floorInstall){
+      if(r.floorInstall==='vinyl') t.floorInstall_vinyl+=c.floor;
+      else if(r.floorInstall==='laminat') t.floorInstall_laminat+=c.floor;
+      else if(r.floorInstall==='dlazba') t.floorInstall_dlazba+=c.floor;
+      else if(r.floorInstall==='parket') t.floorInstall_parket+=c.floor;
+    }
 
     if(r.doors>0){
       if(r.doorDemo!==false){
@@ -508,6 +524,28 @@ function roomHTML(r,i){
             </div>
           </div>
         </div>`:''}
+      <div style="background:#F7F5F0;border:1px solid var(--rule);border-radius:8px;padding:9px 11px;margin:8px 0">
+        <div style="margin-bottom:8px">
+          <label style="font-weight:700;font-size:12px;color:var(--ink)">🔴 Демонтаж пола в этом помещении (${nf(c.floor)} м²)</label>
+          <div class="chips" style="margin:4px 0 0">
+            <button class="chip ${(!r.floorDemo||r.floorDemo==='')?'on':''}" onclick="up(${r.id},'floorDemo',null,null,'')">— Без демонтажа —</button>
+            <button class="chip ${r.floorDemo==='parket'?'on':''}" onclick="up(${r.id},'floorDemo',null,null,'parket')">🪵 Паркет / доска</button>
+            <button class="chip ${r.floorDemo==='laminat'?'on':''}" onclick="up(${r.id},'floorDemo',null,null,'laminat')">🟫 Ламинат</button>
+            <button class="chip ${r.floorDemo==='linoleum'?'on':''}" onclick="up(${r.id},'floorDemo',null,null,'linoleum')">📜 Линолеум / PVC</button>
+            <button class="chip ${r.floorDemo==='dlazba'?'on':''}" onclick="up(${r.id},'floorDemo',null,null,'dlazba')">🧱 Плитка</button>
+          </div>
+        </div>
+        <div style="border-top:1px solid #E2DFD7;padding-top:7px">
+          <label style="font-weight:700;font-size:12px;color:var(--ink)">🟢 Монтаж нового пола (${nf(c.floor)} м²)</label>
+          <div class="chips" style="margin:4px 0 0">
+            <button class="chip ${(!r.floorInstall||r.floorInstall==='')?'on':''}" onclick="up(${r.id},'floorInstall',null,null,'')">— Без монтажа —</button>
+            <button class="chip ${r.floorInstall==='vinyl'?'on':''}" onclick="up(${r.id},'floorInstall',null,null,'vinyl')">💠 Винил (Vinyl)</button>
+            <button class="chip ${r.floorInstall==='laminat'?'on':''}" onclick="up(${r.id},'floorInstall',null,null,'laminat')">🟫 Ламинат</button>
+            <button class="chip ${r.floorInstall==='dlazba'?'on':''}" onclick="up(${r.id},'floorInstall',null,null,'dlazba')">🧱 Плитка (Dlažba)</button>
+            <button class="chip ${r.floorInstall==='parket'?'on':''}" onclick="up(${r.id},'floorInstall',null,null,'parket')">🪵 Паркет</button>
+          </div>
+        </div>
+      </div>
       <label class="chk"><input type="checkbox" ${r.tile?'checked':''} onchange="up(${r.id},'tile',null,null,this.checked)"> Стены — плитка</label>
       ${r.tile?`<div class="row"><div class="f"><label>Ширина укладки, м</label><input class="w92 nav" type="number" step="0.01" inputmode="decimal" placeholder="${nf(c.perim)}" value="${r.obkladW===null?'':r.obkladW}" oninput="up(${r.id},'obkladW',null,null,this.value)"></div><div class="f"><label>Высота укладки, м</label><input class="w92 nav" type="number" step="0.01" inputmode="decimal" value="${r.obkladH}" oninput="up(${r.id},'obkladH',null,null,this.value)"></div></div>`:''}
       <label class="chk"><input type="checkbox" ${r.murov?'checked':''} onchange="up(${r.id},'murov',null,null,this.checked)"> Стены — мурование / перегородки (Ytong / SDK)</label>
@@ -639,6 +677,10 @@ function summaryHTML(){
         details.push(`<span style="color:var(--ink-soft)">Двери: ${dDemo}, ${dInst}</span>`);
       }
     }
+    const fDemoLabels={parket:'🪵 паркет',laminat:'🟫 ламинат',linoleum:'📜 линолеум',dlazba:'🧱 плитка'};
+    const fInstLabels={vinyl:'💠 винил',laminat:'🟫 ламинат',dlazba:'🧱 плитка',parket:'🪵 паркет'};
+    if(r.floorDemo) details.push(`<span style="color:#C2410C;font-weight:600">Дем. пола: ${fDemoLabels[r.floorDemo]||r.floorDemo}</span>`);
+    if(r.floorInstall) details.push(`<span style="color:#047857;font-weight:600">Монт. пола: ${fInstLabels[r.floorInstall]||r.floorInstall}</span>`);
     if(r.bath){
       const wLabels={vana:'🛁 Ванна',sprch_kut:'🚿 Душ. кабина',sprch_zlab:'🚿 Душ. трап'};
       const wt=r.washType||(r.bathType==='none'?'none':(r.bathType||'vana'));
@@ -713,6 +755,7 @@ function up(id,f,ri,k,v){
   else if(f==='hasWc'||f==='hasSink'){r[f]=v;renderRooms();autoBath();renderBath();return;}
   else if(f==='doorDemo'||f==='doorInstall'||f==='doorDemoType'){r[f]=v;renderRooms();return;}
   else if(f==='doorDemoCnt'||f==='doorInstallCnt'){r[f]=(v===''?null:num(v));soft();return;}
+  else if(f==='floorDemo'||f==='floorInstall'){r[f]=v;renderRooms();autofill();refresh();return;}
   else if(f==='doors'||f==='windows') r[f]=Math.max(0,parseInt(v)||0);
   else r[f]=v;
   soft();
@@ -747,8 +790,8 @@ function delRect(id,i){rooms.find(x=>x.id===id).rects.splice(i,1);renderRooms();
 function preset(id,p){const r=rooms.find(x=>x.id===id),d=PRESETS[p];
   r.preset=p;if(!r.name)r.name=p;r.obkladH=d.obklad;r.obkladW=null;r.tile=d.obklad>0;r.doors=d.doors;r.bath=d.bath;
   r.doorDemo=(d.doors>0);r.doorInstall=(d.doors>0);r.doorDemoCnt=null;r.doorInstallCnt=null;
-  if(p==='Kúpeľňa'){r.washType='vana';r.hasWc=false;r.hasSink=true;}
-  else if(p==='WC'){r.washType='none';r.hasWc=true;r.hasSink=true;}
+  if(p==='Kúpeľňa'){r.washType='vana';r.hasWc=false;r.hasSink=true;r.floorDemo='dlazba';r.floorInstall='dlazba';}
+  else if(p==='WC'){r.washType='none';r.hasWc=true;r.hasSink=true;r.floorDemo='dlazba';r.floorInstall='dlazba';}
   renderRooms();autoBath();renderBath();}
 function bindNav(){const inp=[...document.querySelectorAll('#rooms input.nav, #rooms .rname')];
   inp.forEach((el,i)=>el.addEventListener('keydown',e=>{if(e.key!=='Enter')return;e.preventDefault();
@@ -769,10 +812,44 @@ function go(n){
   window.scrollTo(0,0);
 }
 
-/* ---- автозаполнение полностью отключено (ручной режим) ---- */
-const MAP=[];
-function val(k,t){return 0;}
-function autofill(){}
+/* ---- автозаполнение только полов, выбранных на замере ---- */
+const MAP=[
+  [/demontáž podláh drevených|demontáž parkiet|demontáž drevenej/,'floorDemo_parket'],
+  [/demontáž plávajúcej|demontaz plavajucej/,'floorDemo_laminat'],
+  [/odstránenie linolea|odstranenie linolea|odstránenie pvc|odstranenie pvc/,'floorDemo_linoleum'],
+  [/búranie dlažieb|búranie keramickej dlažby/,'floorDemo_dlazba'],
+  [/montáž vinylovej|pokládka vinylovej/,'floorInstall_vinyl'],
+  [/pokládka plávajúcej|montáž plávajúcej/,'floorInstall_laminat'],
+  [/^montáž dlažby|montáž keramickej dlažby|pokládka dlažby/,'floorInstall_dlazba'],
+  [/montáž drevených parkiet|pokládka drevených parkiet/,'floorInstall_parket']
+];
+function val(k,t){
+  switch(k){
+    case 'floorDemo_parket':return t.floorDemo_parket;
+    case 'floorDemo_laminat':return t.floorDemo_laminat;
+    case 'floorDemo_linoleum':return t.floorDemo_linoleum;
+    case 'floorDemo_dlazba':return t.floorDemo_dlazba;
+    case 'floorInstall_vinyl':return t.floorInstall_vinyl;
+    case 'floorInstall_laminat':return t.floorInstall_laminat;
+    case 'floorInstall_dlazba':return t.floorInstall_dlazba;
+    case 'floorInstall_parket':return t.floorInstall_parket;
+  } return 0;
+}
+function autofill(){
+  if(!cpLoaded)return; const t=T();
+  cpItems.forEach(it=>{
+    if(it.section||man[it.row])return;
+    const n=norm(it.name);
+    for(const[re,k]of MAP){
+      if(re.test(n)){
+        const v=val(k,t);
+        if(v>0){qty[it.row]=Math.round(v*100)/100;if(sel[it.row]===undefined)sel[it.row]=true;}
+        else{delete qty[it.row]; if(sel[it.row]!==undefined)sel[it.row]=false;}
+        return;
+      }
+    }
+  });
+}
 function calcSkladkaOdpadu(){}
 
 function renderCP(){
